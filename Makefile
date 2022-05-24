@@ -6,7 +6,7 @@ COMET = $(shell hostname | grep comet | wc -c)
 
 # If you want to compile with MPI enabled,
 # uncomment this line
-# mpi = 1
+mpi = 1
 
 ifneq ($(STAMPEDE), 0)
 include $(PUB)/Arch/arch.intel-c++11.generic
