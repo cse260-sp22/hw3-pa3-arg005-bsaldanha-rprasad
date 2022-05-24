@@ -85,6 +85,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         return;
     #endif
 
+    // MPI_Init(&argc,&argv);
+
     int nprocs = 1, myrank = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -108,7 +110,7 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     int rowOffset = dimensionOffset(cb.m, cb.py, myrank / cb.px);
     int colOffset = dimensionOffset(cb.n, cb.px, myrank % cb.px);
 
-    int innerBlockRowStartIndex = (rowOffset + 1) * (cb.n + 2) + (colOffset + 1);
+    int innerBlockRowStartIndex = rowOffset * (cb.n + 2) + (colOffset + 1);
     int innerBlockRowEndIndex = innerBlockRowStartIndex + m * (cb.n + 2);
 
     if (cb.debug) {
