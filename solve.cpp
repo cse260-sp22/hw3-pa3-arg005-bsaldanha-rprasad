@@ -99,7 +99,7 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
         // copy row by row (for m columns)
         for (int i = 0; i < m; ++i) {
-            row = rowOffset + i;
+            row = rowOffset + 1 + i;
             col = colOffset + 1;
             cout << "row = " << row << " col = " << col << endl;
             cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
