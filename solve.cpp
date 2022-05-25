@@ -175,9 +175,9 @@ inline void scatterInitialCondition(
     }
 
     cout << "my R: " << "my rank = " << myrank << ": ";
-    printArray(recvR, receiveCount);
+    printArray(recvR, (m + 2) * (n + 2));
     cout << "my E: " << "my rank = " << myrank << ": ";
-    printArray(recvE, receiveCount);
+    printArray(recvE, (m + 2) * (n + 2));
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
