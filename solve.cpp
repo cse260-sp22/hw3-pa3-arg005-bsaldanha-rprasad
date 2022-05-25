@@ -29,6 +29,7 @@ void printMat2(const char mesg[], double *E, int m, int n);
 void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m,int n);
+int *alloc1DInt(int m);
 
 extern control_block cb;
 
@@ -121,8 +122,8 @@ inline void scatterInitialCondition(
 ) {
     const int receiveCount = (m + 2) * (n + 2);
 
-    int *sendcounts = alloc1D(nprocs, 1);
-    int *senddispls = alloc1D(nprocs, 1);
+    int *sendcounts = alloc1DInt(nprocs);
+    int *senddispls = alloc1DInt(nprocs);
 
     double* sendE = alloc1D(cb.m + 2, cb.n + 2);
     double* sendR = alloc1D(cb.m + 2, cb.n + 2);
