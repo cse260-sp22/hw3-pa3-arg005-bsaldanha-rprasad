@@ -89,14 +89,19 @@ void fillSendDispls(int *senddispls, const int nprocs) {
 }
 
 void repackForScattering(double *data, double *packed, const int nprocs) {
-    int m, n, rowOffset, colOffset, idx = 0;
+    int m, n, rowOffset, colOffset, idx = 0, row, col;
     for (int rank = 0; rank < nprocs; ++rank) {
+        // for each rank, identify where to start packing data!
+        // gets m and n for `rank`
         setCurrentProcessorDim(m, n, rank, nprocs);
+        // gets row and column offsets for `rank`
         rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
+        // copy row by row (for m columns)
         for (int i = 0; i < m; ++i) {
-            int row = rowOffset + i;
-            memcpy(packed + idx * n, data + (row + 1) * (cb.n + 2) + 1, n * sizeof(double));
+            row = rowOffset + i;
+            col = colOffset + 1;
+            memcpy(packed + idx * n, data + row * (cb.n + 2) + col, n * sizeof(double));
         }
     }
 }
