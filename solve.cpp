@@ -187,7 +187,7 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
-    scatterInitialCondition(E, R, nprocs, myrank, m, n);
+    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n);
     return;
 
     // scatter the initial conditions to all the other processes
