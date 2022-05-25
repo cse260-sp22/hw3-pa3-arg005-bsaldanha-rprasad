@@ -339,8 +339,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     *_E = E;
     *_E_prev = E_prev;
 
-    free(recvE);
-    free(recvR);
+    // free(recvE);
+    // free(recvR);
 }
  
 
