@@ -109,8 +109,8 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             idx += n;
         }
     }
-    cout << "[------] final packed array: ";
-    printArray(packed, cb.m * cb.n);
+    // cout << "[------] final packed array: ";
+    // printArray(packed, cb.m * cb.n);
 }
 
 inline void scatterInitialCondition(double *E, double *R, const int nprocs, const int myrank, const int m, const int n) {
