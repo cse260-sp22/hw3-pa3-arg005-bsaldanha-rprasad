@@ -75,7 +75,7 @@ void fillSendCounts(int *sendcounts, const int nprocs) {
     int rank, mproc, nproc, size;
     for (rank = 0; rank < nprocs; ++rank) {
         setCurrentProcessorDim(mproc, nproc, rank, nprocs);
-        size = (mproc + 2) * (nproc + 2);
+        size = mproc * nproc;
         sendcounts[rank] = size;
     }
 }
@@ -85,19 +85,17 @@ void fillSendDispls(int *senddispls, const int nprocs) {
     senddispls[0] = 0;
     for (rank = 1; rank < nprocs; ++rank) {
         setCurrentProcessorDim(mproc, nproc, rank - 1, nprocs);
-        senddispls[rank] = senddispls[rank - 1] + (mproc + 2) * (nproc + 2);
+        senddispls[rank] = senddispls[rank - 1] + mproc * nproc;
     }
 }
 
 void repackForScattering(double *data, double *packed, const int nprocs) {
     int m, n, rowOffset, colOffset, idx = 0, row, col;
-    memset(packed, 0.0, sizeof(double) * (n + 2));
 
     for (int rank = 0; rank < nprocs; ++rank) {
         // for each rank, identify where to start packing data!
         // gets m and n for `rank`
         setCurrentProcessorDim(m, n, rank, nprocs);
-        idx += (n + 2); // blank (n + 2)
         // gets row and column offsets for `rank`
         rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
@@ -107,16 +105,12 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             col = colOffset + 1;
             // cout << "row = " << row << " col = " << col << endl;
             // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
-            *(packed + idx++) = 0.0;
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
             idx += n;
-            *(packed + idx++) = 0.0;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
         }
     }
-
-    memset(packed + idx, 0.0, sizeof(double) * (n + 2));
     // cout << "[------] final packed array: ";
     // printArray(packed, cb.m * cb.n);
 }
@@ -125,13 +119,13 @@ inline void scatterInitialCondition(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
     double *recvE, double *recvR
 ) {
-    const int receiveCount = (m + 2) * (n + 2);
+    const int receiveCount = m * n;
 
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
 
-    double* sendE = alloc1D(cb.m + 2, cb.n + 2);
-    double* sendR = alloc1D(cb.m + 2, cb.n + 2);
+    double* sendE = alloc1D(cb.m, cb.n);
+    double* sendR = alloc1D(cb.m, cb.n);
 
     // printMat2("E",E,cb.m, cb.n);
     // printMat2("R",R,cb.m, cb.n);
@@ -170,6 +164,15 @@ inline void scatterInitialCondition(
     // free(sendR);
     // free(sendcounts);
     // free(senddispls);
+    
+    // pad recvE and recvR
+    memset(recvE + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
+    memset(recvR + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
+
+    for (int j = (m - 1) * n; j >= 0; j -= n) {
+        memcpy(recvE + (n + 2) * j + 1, recvE + j, n * sizeof(double));
+        memcpy(recvR + (n + 2) * j + 1, recvR + j, n * sizeof(double));
+    }
 
     cout << "my R: " << "my rank = " << myrank << ": ";
     printArray(recvR, receiveCount);
