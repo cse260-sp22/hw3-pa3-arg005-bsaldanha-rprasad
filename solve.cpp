@@ -117,7 +117,7 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
 
 inline void scatterInitialCondition(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
-    double *recvE, double *recvR,
+    double *recvE, double *recvR
 ) {
     const int receiveCount = (m + 2) * (n + 2);
 
@@ -210,8 +210,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
-    double* recvE = new double[(m + 2) * (n + 2)];
-    double* recvR = new double[(m + 2) * (n + 2)];
+    double* recvE = alloc1D((m + 2), (n + 2));
+    double* recvR = alloc1D((m + 2), (n + 2));
     scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvE, recvR);
 
     // scatter the initial conditions to all the other processes
