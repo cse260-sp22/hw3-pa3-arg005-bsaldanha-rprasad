@@ -204,16 +204,6 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-    // Simulated time is different from the integer timestep number
-    double t = 0.0;
-
-    double *E = *_E, *E_prev = *_E_prev;
-    double *R_tmp = R;
-    double *E_tmp = *_E;
-    double *E_prev_tmp = *_E_prev;
-    double mx, sumSq;
-    int niter;
-
     // initializing current processor dimensions
     int m, n; // dimensions of E current processor would compute
     setCurrentProcessorDim(m, n, myrank, nprocs);
@@ -230,13 +220,23 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
-    double* recvE = alloc1D(m + 2, n + 2);
+    double* recvEprev = alloc1D(m + 2, n + 2);
     double* recvR = alloc1D(m + 2, n + 2);
-    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvE, recvR);
+    double* recvE = alloc1D(m + 2, n + 2);
+    memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
-    // scatter the initial conditions to all the other processes
-    // MPI_Sendrecv(
-    // );
+    // scatter the initial conditions
+    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvEprev, recvR);
+
+    // Simulated time is different from the integer timestep number
+    double t = 0.0;
+
+    double *E = recvE, *E_prev = recvEprev;
+    double *R_tmp = recvR;
+    double *E_tmp = recvE;
+    double *E_prev_tmp = recvEprev;
+    double mx, sumSq;
+    int niter;
 
     // We continue to sweep over the mesh until the simulation has reached
     // the desired number of iterations
