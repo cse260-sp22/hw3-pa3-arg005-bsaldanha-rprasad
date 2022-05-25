@@ -137,21 +137,21 @@ inline void scatterInitialCondition(
     fillSendDispls(senddispls, nprocs);
 
     if (myrank == 0 && cb.debug) {
-        // cout << "sendcounts: ";
-        // printArrayInt(sendcounts, nprocs);
-        // cout << "\n";
+        cout << "sendcounts: ";
+        printArrayInt(sendcounts, nprocs);
+        cout << "\n";
 
-        // cout << "senddispls: ";
-        // printArrayInt(senddispls, nprocs);
-        // cout << "\n";
+        cout << "senddispls: ";
+        printArrayInt(senddispls, nprocs);
+        cout << "\n";
 
-        // cout << "sendE: ";
-        // printArray(sendE, cb.m * cb.n);
-        // cout << "\n";
+        cout << "sendE: ";
+        printArray(sendE, cb.m * cb.n);
+        cout << "\n";
 
-        // cout << "sendR: ";
-        // printArray(sendR, cb.m * cb.n);
-        // cout << "\n";
+        cout << "sendR: ";
+        printArray(sendR, cb.m * cb.n);
+        cout << "\n";
     }
 
     // double* recvE = new double[receiveCount];
@@ -210,8 +210,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
-    double* recvE = alloc1D((m + 2), (n + 2));
-    double* recvR = alloc1D((m + 2), (n + 2));
+    double* recvE = alloc1D(m + 2, n + 2);
+    double* recvR = alloc1D(m + 2, n + 2);
     scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvE, recvR);
 
     // scatter the initial conditions to all the other processes
