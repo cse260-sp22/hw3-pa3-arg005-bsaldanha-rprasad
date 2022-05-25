@@ -75,7 +75,7 @@ void fillSendCounts(int *sendcounts, const int nprocs) {
     int rank, mproc, nproc, size;
     for (rank = 0; rank < nprocs; ++rank) {
         setCurrentProcessorDim(mproc, nproc, rank, nprocs);
-        size = mproc * nproc;
+        size = (mproc + 2) * (nproc + 2);
         sendcounts[rank] = size;
     }
 }
@@ -85,7 +85,7 @@ void fillSendDispls(int *senddispls, const int nprocs) {
     senddispls[0] = 0;
     for (rank = 1; rank < nprocs; ++rank) {
         setCurrentProcessorDim(mproc, nproc, rank - 1, nprocs);
-        senddispls[rank] = senddispls[rank - 1] + mproc * nproc;
+        senddispls[rank] = senddispls[rank - 1] + (mproc + 2) * (nproc + 2);
     }
 }
 
