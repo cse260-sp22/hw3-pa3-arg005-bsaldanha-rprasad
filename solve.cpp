@@ -193,8 +193,6 @@ inline void scatterInitialCondition(
     // printArray(recvR, (m + 2) * (n + 2));
     // cout << "my E: " << "my rank = " << myrank << ": ";
     // printArray(recvE, (m + 2) * (n + 2));
-<<<<<<< HEAD
-=======
 }
 
 void padBoundaries(int m, int n, double *E_prev, const int myrank) {
@@ -226,7 +224,6 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank) {
         E_prev[i] = E_prev[i - (n + 2) * 2];
     }
 
->>>>>>> d6e6d9b (update to scatter)
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
