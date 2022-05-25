@@ -160,10 +160,10 @@ inline void scatterInitialCondition(
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, recvE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, recvR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    free(sendE);
-    free(sendR);
-    free(sendcounts);
-    free(senddispls);
+    // free(sendE);
+    // free(sendR);
+    // free(sendcounts);
+    // free(senddispls);
 
     cout << "my R: " << "my rank = " << myrank << ": ";
     printArray(recvR, receiveCount);
