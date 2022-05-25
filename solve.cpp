@@ -25,6 +25,8 @@ using namespace std;
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
+void printArray(double *E, int m);
+void printArrayInt(int *E, int m);
 
 extern control_block cb;
 
@@ -42,18 +44,6 @@ double L2Norm(double sumSq) {
     double l2norm = sumSq / (double)((cb.m) * (cb.n));
     l2norm = sqrt(l2norm);
     return l2norm;
-}
-
-void fillSendCounts() {
-
-}
-
-void fillSendDispls() {
-
-}
-
-void scatterInitialCondition(double *E, double *R) {
-
 }
 
 inline int allotDimension(const int n, const int nprocs, const int rank) {
@@ -76,6 +66,79 @@ inline void setCurrentProcessorDim(int &m, int &n, const int rank, const int npr
     // sets m, n to the tile's dimensions of the current processor
     m = allotDimension(cb.m, cb.py, rank / cb.px);
     n = allotDimension(cb.n, cb.px, rank % cb.px);
+}
+
+
+void fillSendCounts(int *sendcounts, const int nprocs) {
+    int rank, mproc, nproc, size;
+    for (rank = 0; rank < nprocs; ++rank) {
+        setCurrentProcessorDim(mproc, nproc, rank, nprocs);
+        size = mproc * nproc;
+        sendcounts[rank] = size;
+    }
+}
+
+void fillSendDispls(int *senddispls, const int nprocs) {
+    int rank, rowOffset, colOffset, offset;
+    for (rank = 0; rank < nprocs; ++rank) {
+        rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
+        colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
+        offset = rowOffset * (cb.n + 2) + colOffset;
+        senddispls[rank] = offset;
+    }
+}
+
+void repackForScattering(double *data, double *packed, const int nprocs) {
+    int m, n, rowOffset, colOffset, idx = 0;
+    for (int rank = 0; rank < nprocs; ++rank) {
+        setCurrentProcessorDim(m, n, rank, nprocs);
+        rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
+        colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
+        for (int i = 0; i < m; ++i) {
+            int row = rowOffset + i;
+            for (int j = 0; j < n; ++j) {
+                int col = colOffset + j;
+                *(packed + idx++) = *(data + (row + 1) * (cb.n + 2) + col + 1);
+            }
+        }
+    }
+}
+
+inline void scatterInitialCondition(double *E, double *R, const int nprocs, const int myrank, const int m, const int n) {
+    const int receiveCount = m * n;
+
+    int *sendcounts = new int[nprocs];
+    int *senddispls = new int[nprocs];
+
+    double* sendE = new double[cb.m * cb.n];
+    double* sendR = new double[cb.m * cb.n];
+
+    repackForScattering(E, sendE, nprocs);
+    repackForScattering(R, sendR, nprocs);
+
+    fillSendCounts(sendcounts, nprocs);
+    fillSendDispls(senddispls, nprocs);
+
+    if (myrank == 0) {
+        cout << "sendcounts: ";
+        printArrayInt(sendcounts, nprocs);
+        cout << "\n";
+
+        cout << "senddispls: ";
+        printArrayInt(senddispls, nprocs);
+        cout << "\n";
+
+        cout << "sendE: ";
+        printArray(sendE, cb.m * cb.n);
+        cout << "\n";
+
+        cout << "sendR: ";
+        printArray(sendR, cb.m * cb.n);
+        cout << "\n";
+    }
+
+    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, R, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, E, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {

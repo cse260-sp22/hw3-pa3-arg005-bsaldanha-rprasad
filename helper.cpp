@@ -84,3 +84,19 @@ void printMat(const char mesg[], double *E, int m, int n){
 	    printf("\n");
     }
 }
+
+void printArray(double *E, int m){
+    int i;
+    for (i=0; i < m; i++){
+        printf("%6.3f ", E[i]);
+    }
+    printf("\n");
+}
+
+void printArrayInt(int *E, int m){
+    int i;
+    for (i=0; i < m; i++){
+        printf("%d ", E[i]);
+    }
+    printf("\n");
+}
