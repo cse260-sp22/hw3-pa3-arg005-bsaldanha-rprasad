@@ -50,7 +50,7 @@ void init (double *E,double *E_prev,double *R,int m,int n){
         R[i] = 1.0;
     }
     // We only print the meshes if they are small enough
-#if 1
+#if 0
     printMat("E_prev",E_prev,m,n);
     printMat("R",R,m,n);
 #endif

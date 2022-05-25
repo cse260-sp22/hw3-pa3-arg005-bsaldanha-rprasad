@@ -117,6 +117,9 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
     double* sendE = new double[cb.m * cb.n];
     double* sendR = new double[cb.m * cb.n];
 
+    printMat("E",E,cb.m, cb.n);
+    printMat("R",R,cb.m, cb.n);
+
     repackForScattering(E, sendE, nprocs);
     repackForScattering(R, sendR, nprocs);
 
