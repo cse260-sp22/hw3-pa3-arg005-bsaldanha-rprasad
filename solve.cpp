@@ -101,11 +101,11 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
         for (int i = 0; i < m; ++i) {
             row = rowOffset + 1 + i;
             col = colOffset + 1;
-            cout << "row = " << row << " col = " << col << endl;
-            cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
+            // cout << "row = " << row << " col = " << col << endl;
+            // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
-            cout << "packed array: from " << idx * n << ": ";
-            printArray(packed + idx, n);
+            // cout << "packed array: from " << idx * n << ": ";
+            // printArray(packed + idx, n);
             idx += n;
         }
     }
@@ -122,8 +122,8 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
     double* sendE = new double[cb.m * cb.n];
     double* sendR = new double[cb.m * cb.n];
 
-    printMat2("E",E,cb.m, cb.n);
-    printMat2("R",R,cb.m, cb.n);
+    // printMat2("E",E,cb.m, cb.n);
+    // printMat2("R",R,cb.m, cb.n);
 
     repackForScattering(E, sendE, nprocs);
     repackForScattering(R, sendR, nprocs);
@@ -131,26 +131,31 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
 
-    if (myrank == 0) {
-        cout << "sendcounts: ";
-        printArrayInt(sendcounts, nprocs);
-        cout << "\n";
+    if (myrank == 0 && cb.debug) {
+        // cout << "sendcounts: ";
+        // printArrayInt(sendcounts, nprocs);
+        // cout << "\n";
 
-        cout << "senddispls: ";
-        printArrayInt(senddispls, nprocs);
-        cout << "\n";
+        // cout << "senddispls: ";
+        // printArrayInt(senddispls, nprocs);
+        // cout << "\n";
 
-        cout << "sendE: ";
-        printArray(sendE, cb.m * cb.n);
-        cout << "\n";
+        // cout << "sendE: ";
+        // printArray(sendE, cb.m * cb.n);
+        // cout << "\n";
 
-        cout << "sendR: ";
-        printArray(sendR, cb.m * cb.n);
-        cout << "\n";
+        // cout << "sendR: ";
+        // printArray(sendR, cb.m * cb.n);
+        // cout << "\n";
     }
 
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, R, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, E, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    cout << "my R: " << "my rank = " << myrank << ": ";
+    printArray(R, m * n);
+    cout << "my E: " << "my rank = " << myrank << ": ";
+    printArray(E, m * n);
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
