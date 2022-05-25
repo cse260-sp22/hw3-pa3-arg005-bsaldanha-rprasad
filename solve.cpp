@@ -91,13 +91,13 @@ void fillSendDispls(int *senddispls, const int nprocs) {
 
 void repackForScattering(double *data, double *packed, const int nprocs) {
     int m, n, rowOffset, colOffset, idx = 0, row, col;
-    memset(packed, 0.0, sizeof(double) * (n + 3));
+    memset(packed, 0.0, sizeof(double) * (n + 2));
 
     for (int rank = 0; rank < nprocs; ++rank) {
         // for each rank, identify where to start packing data!
         // gets m and n for `rank`
         setCurrentProcessorDim(m, n, rank, nprocs);
-        idx += (n + 3); // blank (n + 2) + 1 offset on left
+        idx += (n + 2); // blank (n + 2)
         // gets row and column offsets for `rank`
         rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
@@ -107,16 +107,16 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             col = colOffset + 1;
             // cout << "row = " << row << " col = " << col << endl;
             // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
+            *(packed + idx++) = 0.0;
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
             idx += n;
-            memset(packed + idx, 0, sizeof(double) * 2);
-            idx += 2;
+            *(packed + idx++) = 0.0;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
         }
     }
 
-    memset(packed + idx, 0, sizeof(double) * (n + 1));
+    memset(packed + idx, 0.0, sizeof(double) * (n + 2));
     // cout << "[------] final packed array: ";
     // printArray(packed, cb.m * cb.n);
 }
