@@ -95,10 +95,7 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
         for (int i = 0; i < m; ++i) {
             int row = rowOffset + i;
-            for (int j = 0; j < n; ++j) {
-                int col = colOffset + j;
-                *(packed + idx++) = *(data + (row + 1) * (cb.n + 2) + col + 1);
-            }
+            memcpy(packed + idx * n, data + (row + 1) * (cb.n + 2) + 1, n * sizeof(double));
         }
     }
 }
@@ -176,8 +173,7 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     int innerBlockRowEndIndex = innerBlockRowStartIndex + m * (cb.n + 2);
 
     if (cb.debug) {
-        cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset;
-        cout << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
+        cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
     scatterInitialCondition(E, R, nprocs, myrank, m, n);
