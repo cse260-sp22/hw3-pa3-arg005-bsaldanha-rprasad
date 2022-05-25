@@ -64,13 +64,6 @@ double *alloc1D(int m,int n){
     return(E);
 }
 
-int *alloc1DInt(int m){
-    int *E;
-    // Ensures that allocatdd memory is aligned on a 16 byte boundary
-    assert(E= (int*) memalign(16, sizeof(int)*m) );
-    return(E);
-}
-
 void printMat(const char mesg[], double *E, int m, int n){
     int i;
 #if 0
