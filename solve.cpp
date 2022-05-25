@@ -79,12 +79,11 @@ void fillSendCounts(int *sendcounts, const int nprocs) {
 }
 
 void fillSendDispls(int *senddispls, const int nprocs) {
-    int rank, rowOffset, colOffset, offset;
-    for (rank = 0; rank < nprocs; ++rank) {
-        rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
-        colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
-        offset = rowOffset * (cb.n + 2) + colOffset;
-        senddispls[rank] = offset;
+    int rank, mproc, nproc;
+    senddispls[0] = 0;
+    for (rank = 1; rank < nprocs; ++rank) {
+        setCurrentProcessorDim(mproc, nproc, rank - 1, nprocs);
+        senddispls[rank] = senddispls[rank - 1] + mproc * nproc;
     }
 }
 
@@ -180,6 +179,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset;
         cout << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
+
+    scatterInitialCondition(E, R, nprocs, myrank, m, n);
     return;
 
     // scatter the initial conditions to all the other processes
