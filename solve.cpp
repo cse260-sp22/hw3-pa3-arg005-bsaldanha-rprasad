@@ -104,6 +104,8 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             cout << "row = " << row << " col = " << col << endl;
             cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
             memcpy(packed + idx * n, data + row * (cb.n + 2) + col, n * sizeof(double));
+            cout << "packed array: ";
+            cout << printArray(packed + idx * n, n) << endl;
         }
     }
 }
@@ -121,7 +123,7 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
     printMat2("R",R,cb.m, cb.n);
 
     repackForScattering(E, sendE, nprocs);
-    repackForScattering(R, sendR, nprocs);
+    // repackForScattering(R, sendR, nprocs);
 
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
