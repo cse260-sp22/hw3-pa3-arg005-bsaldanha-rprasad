@@ -185,10 +185,10 @@ inline void scatterInitialCondition(
         memcpy(recvR + (n + 2) * (j + 1) + 1, tempR + j * n, n * sizeof(double));
     }
 
-    cout << "my R: " << "my rank = " << myrank << ": ";
-    printArray(recvR, (m + 2) * (n + 2));
-    cout << "my E: " << "my rank = " << myrank << ": ";
-    printArray(recvE, (m + 2) * (n + 2));
+    // cout << "my R: " << "my rank = " << myrank << ": ";
+    // printArray(recvR, (m + 2) * (n + 2));
+    // cout << "my E: " << "my rank = " << myrank << ": ";
+    // printArray(recvE, (m + 2) * (n + 2));
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
