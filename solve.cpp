@@ -91,6 +91,8 @@ void fillSendDispls(int *senddispls, const int nprocs) {
 
 void repackForScattering(double *data, double *packed, const int nprocs) {
     int m, n, rowOffset, colOffset, idx = 0, row, col;
+    memset(packed, 0.0, sizeof(double) * (n + 3));
+
     for (int rank = 0; rank < nprocs; ++rank) {
         // for each rank, identify where to start packing data!
         // gets m and n for `rank`
@@ -106,11 +108,15 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             // cout << "row = " << row << " col = " << col << endl;
             // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
+            idx += n;
+            memset(packed + idx, 0, sizeof(double) * 2);
+            idx += 2;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
-            idx += (n + 2);
         }
     }
+
+    memset(packed + idx, 0, sizeof(double) * (n + 1));
     // cout << "[------] final packed array: ";
     // printArray(packed, cb.m * cb.n);
 }
