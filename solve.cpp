@@ -17,6 +17,7 @@
 #include "Plotting.h"
 #include "cblock.h"
 #include <emmintrin.h>
+#include <cstring>
 #ifdef _MPI_
 #include <mpi.h>
 #endif
