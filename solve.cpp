@@ -339,6 +339,9 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     // Swap pointers so we can re-use the arrays
     *_E = E;
     *_E_prev = E_prev;
+
+    free(recvE);
+    free(recvR);
 }
  
 
