@@ -152,11 +152,11 @@ inline void scatterInitialCondition(
         cout << "\n";
 
         cout << "sendE: ";
-        printArray(sendE, cb.m * cb.n);
+        printArray(sendE, (cb.m + 2) * (cb.n + 2));
         cout << "\n";
 
         cout << "sendR: ";
-        printArray(sendR, cb.m * cb.n);
+        printArray(sendR, (cb.m + 2) * (cb.n + 2));
         cout << "\n";
     }
 
