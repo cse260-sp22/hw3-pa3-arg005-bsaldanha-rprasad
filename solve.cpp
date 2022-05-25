@@ -28,6 +28,7 @@ void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
 void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
+double *alloc1D(int m,int n);
 
 extern control_block cb;
 
@@ -94,6 +95,7 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
         // for each rank, identify where to start packing data!
         // gets m and n for `rank`
         setCurrentProcessorDim(m, n, rank, nprocs);
+        idx += (n + 3); // blank (n + 2) + 1 offset on left
         // gets row and column offsets for `rank`
         rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
         colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
@@ -106,21 +108,24 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
-            idx += n;
+            idx += (n + 2);
         }
     }
     // cout << "[------] final packed array: ";
     // printArray(packed, cb.m * cb.n);
 }
 
-inline void scatterInitialCondition(double *E, double *R, const int nprocs, const int myrank, const int m, const int n) {
-    const int receiveCount = m * n;
+inline void scatterInitialCondition(
+    double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
+    double *recvE, double *recvR,
+) {
+    const int receiveCount = (m + 2) * (n + 2);
 
-    int *sendcounts = new int[nprocs];
-    int *senddispls = new int[nprocs];
+    int *sendcounts = alloc1D(nprocs, 1);
+    int *senddispls = alloc1D(nprocs, 1);
 
-    double* sendE = new double[cb.m * cb.n];
-    double* sendR = new double[cb.m * cb.n];
+    double* sendE = alloc1D(cb.m + 2, cb.n + 2);
+    double* sendR = alloc1D(cb.m + 2, cb.n + 2);
 
     // printMat2("E",E,cb.m, cb.n);
     // printMat2("R",R,cb.m, cb.n);
@@ -149,8 +154,8 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
         // cout << "\n";
     }
 
-    double* recvE = new double[receiveCount];
-    double* recvR = new double[receiveCount];
+    // double* recvE = new double[receiveCount];
+    // double* recvR = new double[receiveCount];
 
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, recvE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, recvR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -161,9 +166,9 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
     free(senddispls);
 
     cout << "my R: " << "my rank = " << myrank << ": ";
-    printArray(recvR, m * n);
+    printArray(recvR, receiveCount);
     cout << "my E: " << "my rank = " << myrank << ": ";
-    printArray(recvE, m * n);
+    printArray(recvE, receiveCount);
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
@@ -205,8 +210,9 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     }
 
-    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n);
-    return;
+    double* recvE = new double[(m + 2) * (n + 2)];
+    double* recvR = new double[(m + 2) * (n + 2)];
+    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvE, recvR);
 
     // scatter the initial conditions to all the other processes
     // MPI_Sendrecv(
