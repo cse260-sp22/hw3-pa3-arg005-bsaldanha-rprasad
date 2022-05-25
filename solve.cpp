@@ -104,7 +104,7 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
             cout << "row = " << row << " col = " << col << endl;
             cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
             memcpy(packed + idx * n, data + row * (cb.n + 2) + col, n * sizeof(double));
-            cout << "packed array: ";
+            cout << "packed array: from " << idx * n << ": ";
             printArray(packed + idx * n, n);
             idx += n;
         }
