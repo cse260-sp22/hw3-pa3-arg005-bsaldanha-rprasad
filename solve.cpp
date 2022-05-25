@@ -115,6 +115,10 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
     // printArray(packed, cb.m * cb.n);
 }
 
+void communicateGhostCells() {
+
+}
+
 inline void scatterInitialCondition(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
     double *recvE, double *recvR
@@ -189,6 +193,40 @@ inline void scatterInitialCondition(
     // printArray(recvR, (m + 2) * (n + 2));
     // cout << "my E: " << "my rank = " << myrank << ": ";
     // printArray(recvE, (m + 2) * (n + 2));
+<<<<<<< HEAD
+=======
+}
+
+void padBoundaries(int m, int n, double *E_prev, const int myrank) {
+    /*
+    pad boundaries only if the processor's rank is on the corners
+    UPDATE the below method!
+    */
+
+    // 4 FOR LOOPS set up the padding needed for the boundary conditions
+    int i, j;
+
+    // Fills in the TOP Ghost Cells
+    for (i = 0; i < (n + 2); i++) {
+        E_prev[i] = E_prev[i + (n + 2) * 2];
+    }
+
+    // Fills in the RIGHT Ghost Cells
+    for (i = (n + 1); i < (m + 2) * (n + 2); i += (n + 2)) {
+        E_prev[i] = E_prev[i - 2];
+    }
+
+    // Fills in the LEFT Ghost Cells
+    for (i = 0; i < (m + 2) * (n + 2); i += (n + 2)) {
+        E_prev[i] = E_prev[i + 2];
+    }
+
+    // Fills in the BOTTOM Ghost Cells
+    for (i = ((m + 2) * (n + 2) - (n + 2)); i < (m + 2) * (n + 2); i++) {
+        E_prev[i] = E_prev[i - (n + 2) * 2];
+    }
+
+>>>>>>> d6e6d9b (update to scatter)
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
@@ -210,15 +248,18 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     // there would be padding of 2 as well. TODO!
 
     // offsets in terms of processors
-    int rowOffset = dimensionOffset(cb.m, cb.py, myrank / cb.px);
-    int colOffset = dimensionOffset(cb.n, cb.px, myrank % cb.px);
+    // int rowOffset = dimensionOffset(cb.m, cb.py, myrank / cb.px);
+    // int colOffset = dimensionOffset(cb.n, cb.px, myrank % cb.px);
 
-    int innerBlockRowStartIndex = rowOffset * (cb.n + 2) + (colOffset + 1);
-    int innerBlockRowEndIndex = innerBlockRowStartIndex + m * (cb.n + 2);
+    // int innerBlockRowStartIndex = rowOffset * (cb.n + 2) + (colOffset + 1);
+    // int innerBlockRowEndIndex = innerBlockRowStartIndex + m * (cb.n + 2);
 
-    if (cb.debug) {
-        cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
-    }
+    int innerBlockRowStartIndex = (n + 2) + 1;
+    int innerBlockRowEndIndex = (((m + 2) * (n + 2) - 1) - (n)) - (n + 2);
+
+    // if (cb.debug) {
+    //     cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
+    // }
 
     double* recvEprev = alloc1D(m + 2, n + 2);
     double* recvR = alloc1D(m + 2, n + 2);
@@ -250,42 +291,10 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
                 plotter->updatePlot(E, -1, m + 1, n + 1);
         }
 
-        /*
-         * Copy data from boundary of the computational box to the
-         * padding region, set up for differencing computational box's boundary
-         *
-         * These are physical boundary conditions, and are not to be confused
-         * with ghost cells that we would use in an MPI implementation
-         *
-         * The reason why we copy boundary conditions is to avoid
-         * computing single sided differences at the boundaries
-         * which increase the running time of solve()
-         *
-         */
+        padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
 
-        // 4 FOR LOOPS set up the padding needed for the boundary conditions
-        int i, j;
-
-        // Fills in the TOP Ghost Cells
-        for (i = 0; i < (n + 2); i++) {
-            E_prev[i] = E_prev[i + (n + 2) * 2];
-        }
-
-        // Fills in the RIGHT Ghost Cells
-        for (i = (n + 1); i < (m + 2) * (n + 2); i += (n + 2)) {
-            E_prev[i] = E_prev[i - 2];
-        }
-
-        // Fills in the LEFT Ghost Cells
-        for (i = 0; i < (m + 2) * (n + 2); i += (n + 2)) {
-            E_prev[i] = E_prev[i + 2];
-        }
-
-        // Fills in the BOTTOM Ghost Cells
-        for (i = ((m + 2) * (n + 2) - (n + 2)); i < (m + 2) * (n + 2); i++) {
-            E_prev[i] = E_prev[i - (n + 2) * 2];
-        }
-
+        // communicate the boundaries with other processors (TODO: Raghav & Brandon)
+        // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
 
 #define FUSED 1
