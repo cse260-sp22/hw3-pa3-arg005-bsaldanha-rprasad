@@ -149,13 +149,21 @@ inline void scatterInitialCondition(double *E, double *R, const int nprocs, cons
         // cout << "\n";
     }
 
-    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, R, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, E, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    double* recvE = new double[receiveCount];
+    double* recvR = new double[receiveCount];
+
+    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, recvE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, recvR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    free(sendE);
+    free(sendR);
+    free(sendcounts);
+    free(senddispls);
 
     cout << "my R: " << "my rank = " << myrank << ": ";
-    printArray(R, m * n);
+    printArray(recvR, m * n);
     cout << "my E: " << "my rank = " << myrank << ": ";
-    printArray(E, m * n);
+    printArray(recvE, m * n);
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
