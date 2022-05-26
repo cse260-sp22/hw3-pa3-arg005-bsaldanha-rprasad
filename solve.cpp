@@ -264,17 +264,19 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
     // scatter the initial conditions
+    double *E_prev = *_E_prev;
     scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvEprev, recvR);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
-
-    double *E = recvE, *E_prev = recvEprev;
+    double *E = recvE;
     double *R_tmp = recvR;
     double *E_tmp = recvE;
     double *E_prev_tmp = recvEprev;
+    E_prev = recvEprev;
+
     double mx, sumSq;
-    int niter;
+    int niter, i, j;
 
     // We continue to sweep over the mesh until the simulation has reached
     // the desired number of iterations
