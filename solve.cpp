@@ -195,6 +195,83 @@ inline void scatterInitialCondition(
     // printArray(recvE, (m + 2) * (n + 2));
 }
 
+//TODO: Code gather algo, send all data in buffer and then unpack it to get final matrix
+inline void gatherFinalValues(
+    double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
+    double *recvE, double *recvR
+) {
+    const int receiveCount = m * n;
+
+    int *sendcounts = new int[nprocs];
+    int *senddispls = new int[nprocs];
+
+    double* sendE = alloc1D(cb.m, cb.n);
+    double* sendR = alloc1D(cb.m, cb.n);
+
+    // printMat2("E",E,cb.m, cb.n);
+    // printMat2("R",R,cb.m, cb.n);
+
+    repackForScattering(E, sendE, nprocs);
+    repackForScattering(R, sendR, nprocs);
+
+    fillSendCounts(sendcounts, nprocs);
+    fillSendDispls(senddispls, nprocs);
+
+    if (myrank == 0 && cb.debug) {
+        cout << "sendcounts: ";
+        printArrayInt(sendcounts, nprocs);
+        cout << "\n";
+
+        cout << "senddispls: ";
+        printArrayInt(senddispls, nprocs);
+        cout << "\n";
+
+        cout << "sendE: ";
+        printArray(sendE, (cb.m + 2) * (cb.n + 2));
+        cout << "\n";
+
+        cout << "sendR: ";
+        printArray(sendR, (cb.m + 2) * (cb.n + 2));
+        cout << "\n";
+    }
+
+    // double* recvE = new double[receiveCount];
+    // double* recvR = new double[receiveCount];
+    double* tempE = alloc1D(m, n);
+    double* tempR = alloc1D(m, n);
+
+    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // free(sendE);
+    // free(sendR);
+    // free(sendcounts);
+    // free(senddispls);
+    
+    // pad recvE and recvR
+    // memset(recvE + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
+    // memset(recvR + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
+    // memset(recvE)
+
+    memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
+    memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
+
+    // for (int j = (m - 1) * n; j >= 0; j -= n) {
+    //     memcpy(recvE + (n + 2) * j + 1, recvE + j, n * sizeof(double));
+    //     memcpy(recvR + (n + 2) * j + 1, recvR + j, n * sizeof(double));
+    // }
+
+    for (int j = 0; j < m; ++j) {
+        memcpy(recvE + (n + 2) * (j + 1) + 1, tempE + j * n, n * sizeof(double));
+        memcpy(recvR + (n + 2) * (j + 1) + 1, tempR + j * n, n * sizeof(double));
+    }
+
+    // cout << "my R: " << "my rank = " << myrank << ": ";
+    // printArray(recvR, (m + 2) * (n + 2));
+    // cout << "my E: " << "my rank = " << myrank << ": ";
+    // printArray(recvE, (m + 2) * (n + 2));
+}
+
 void padBoundaries(int m, int n, double *E_prev, const int myrank) {
     /*
     pad boundaries only if the processor's rank is on the corners
@@ -204,8 +281,8 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank) {
     // 4 FOR LOOPS set up the padding needed for the boundary conditions
     int i, j;
 
-	int row = myrank / cb.n;
-	int col = myrank % cb.n;
+	int row = myrank / cb.px;
+	int col = myrank % cb.px;
 
 	if (row == 0){
 		// Fills in  the TOP Ghost Cells
