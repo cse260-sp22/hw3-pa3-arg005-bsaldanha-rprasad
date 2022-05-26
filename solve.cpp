@@ -204,26 +204,34 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank) {
     // 4 FOR LOOPS set up the padding needed for the boundary conditions
     int i, j;
 
-    // Fills in the TOP Ghost Cells
-    for (i = 0; i < (n + 2); i++) {
-        E_prev[i] = E_prev[i + (n + 2) * 2];
-    }
+	int row = myrank / cb.n;
+	int col = myrank % cb.n;
 
-    // Fills in the RIGHT Ghost Cells
-    for (i = (n + 1); i < (m + 2) * (n + 2); i += (n + 2)) {
-        E_prev[i] = E_prev[i - 2];
-    }
+	if (row == 0){
+		// Fills in  the TOP Ghost Cells
+		for (i = 1; i < (n+1); i++){
+			E_prev[i] = E_prev[i + (n + 2)*2];
+		}
+	}
+	else if (row == (cb.m-1)){
+		// Fills in the BOTTOM Ghost Cells
+		for (i = ((m + 2)*(n + 2) - (n + 2) + 1); i < (m + 2)(n + 2) - 1; i++){
+			E_prev[i] = E_prev[i - (n + 2)*2];
+		}
+	}
 
-    // Fills in the LEFT Ghost Cells
-    for (i = 0; i < (m + 2) * (n + 2); i += (n + 2)) {
-        E_prev[i] = E_prev[i + 2];
-    }
-
-    // Fills in the BOTTOM Ghost Cells
-    for (i = ((m + 2) * (n + 2) - (n + 2)); i < (m + 2) * (n + 2); i++) {
-        E_prev[i] = E_prev[i - (n + 2) * 2];
-    }
-
+	if (col == 0){
+		// Fills in the LEFT Ghost Cells
+		for (i = (n + 2); i < (m + 1)*(n + 2); i += (n + 2)){
+			E_prev[i] = E_prev[i + 2];	
+		}
+	}
+	else if (col == (cb.n-1)){
+		// Fills in the RIGHT Ghost Cells
+		for (i = (n + 1 + n + 2); i < (m + 1)*(n + 2); i += (n + 2)){
+			E_prev[i] = E_prev[i - 2];
+		}
+	}
 }
 
 void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
