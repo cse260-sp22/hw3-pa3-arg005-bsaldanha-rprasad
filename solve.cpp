@@ -115,8 +115,153 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
     // printArray(packed, cb.m * cb.n);
 }
 
-void communicateGhostCells() {
+void inline sendReceiveLeft(const int m, const int n, double *E_prev, double *left_right_send_buf, double *left_right_recv_buf) {
+    int left_start_index = 1 + (n + 2);
+    for (int i = 0; i < m; i++) {
+        left_right_send_buf[i] = E_prev[i + left_start_index];
+    }
+    MPI_Isend(left_right_send_buf, m, MPI_DOUBLE, my_rank - 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+    MPI_Irecv(left_right_recv_buf, m, MPI_DOUBLE, my_rank - 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+    // not sure if this is the right place for this to be in
+    for(int i = 0; i < m; i++) {
+        E_prev[i * (n + 2) + left_start_index - 1] = left_right_recv_buf[i]
+    }
+}
 
+void inline sendReceiveRight(const int m, const int n, double *E_prev, double *left_right_send_buf, double *left_right_recv_buf) {
+    int right_start_index = n + (n + 2);
+    for (int i = 0; i < m; i++) {
+        left_right_send_buf[i] = E_prev[i + right_start_index];
+    }
+    MPI_Isend(left_right_send_buf, m, MPI_DOUBLE, my_rank + 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+    MPI_Irecv(left_right_recv_buf, m, MPI_DOUBLE, my_rank + 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+    // not sure if this is the right place for this to be in
+    for(int i = 0; i < m; i++) {
+        E_prev[i * (n + 2) + right_start_index + 1] = left_right_recv_buf[i]
+    }
+}
+
+void communicateGhostCells(const int m, const int n, double *E_prev, const int my_rank) {
+    // compute inner cells and populate ghost cells in parallel
+    // once the inner cells are computed, `wait` for all ghost cells to be populated
+    // compute outer cells
+
+    bool leftUpper = my_rank == 0;
+    bool rightUpper = my_rank == cb.px - 1;
+    bool rightLower = my_rank == cb.px * cb.py - 1;
+    bool leftLower = my_rank == cb.px * (cb.py - 1);
+
+    MPI_Request *request;
+
+    int top_start_index = 1 + (n + 2);
+    int bottom_start_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+
+    double *left_right_send_buf = malloc(m * sizeof(double));
+    double *left_right_recv_buf = malloc(m * sizeof(double));
+
+    // corner processors
+    // these need comms only at 2 boundaries
+    if(leftUpper || rightUpper || rightLower || leftLower) {
+
+        if (leftUpper) {
+            // send/receive m elements to/from the processor to the right and
+            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor below
+            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (rightUpper) {
+            // send/receive m elements to/from the processor to the left and
+            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor below
+            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (rightLower) {
+            // send/receive m elements to/from the processor to the left and
+            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor above
+            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (leftLower) {
+            // send/receive m elements to/from the processor to the right and
+            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor above
+            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+    }
+
+    bool topBoundary = my_rank < cb.px;
+    bool leftBoundary = (my_rank % cb.px) == 0;
+    bool rightBoundary = ((my_rank + 1) % cb.px) == 0;
+    bool bottomBoundary = my_rank >= (cb.px * (cb.py - 1));
+
+    // boundary processors
+    // these need comms only at 3 boundaries
+    // corner processors will not be included in these because they will already have been handled before
+    else if(topBoundary || leftBoundary || rightBoundary || bottomBoundary) {
+        if (topBoundary) {
+            // send/receive m elements to/from the processors to the left and right
+            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor below
+            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (leftBoundary) {
+            // send/receive m elements to/from the processor to the right
+            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processors above and below
+            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+
+            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (bottomBoundary) {
+            // send/receive m elements to/from the processors to the left and right
+            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processor above
+            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+
+        if (rightBoundary) {
+            // send/receive m elements to/from the processor to the left
+            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            // send/receive n elements to/from the processors above and below
+            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+
+            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        }
+    }
+
+    // interior processors
+    // these need comms at all 4 boundaries
+    else {
+        sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+        sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+
+
+        MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+
+        MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+    }
+
+    free(left_right_send_buf);
+    free(left_right_recv_buf);
 }
 
 inline void scatterInitialCondition(
