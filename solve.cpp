@@ -181,25 +181,25 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
     {
     case LEFT:
         send_index = 1 + (n + 2);
-        receive_index = n + 1 + (n + 2);
+        receive_index = (n + 2);
         otherProcessRank = myrank - 1;
         otherDirection = RIGHT;
         break;
     case RIGHT:
         send_index = n + (n + 2);
-        receive_index = (n + 2);
+        receive_index = n + 1 + (n + 2);
         otherProcessRank = myrank + 1;
         otherDirection = LEFT;
         break;
     case UP:
         send_index = 1 + (n + 2);
-        receive_index = (n + 2) * (m + 2) - (n + 2) + 1;
+        receive_index = 1;
         otherProcessRank = myrank - cb.px;
         otherDirection = DOWN;
         break;
     case DOWN:
         send_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
-        receive_index = 1;
+        receive_index = (n + 2) * (m + 2) - (n + 2) + 1;
         otherProcessRank = myrank + cb.px;
         otherDirection = UP;
         break;
