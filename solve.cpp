@@ -261,6 +261,11 @@ inline void compute(const int m, const int n, const double dt, const double alph
     int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 1;
 
     for(int niter = 0; niter < cb.niters; niter++) {
+        if (my_rank == 0 && cb.debug) {
+            cout << "At iteration " << niter << endl;
+            printMat2("E_prev", E_prev, m, n);
+            printMat2("E", E_prev, m, n);
+        }
         #define FUSED 1
 
         #ifdef FUSED
@@ -705,6 +710,11 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
     // We continue to sweep over the mesh until the simulation has reached
     // the desired number of iterations
     for (niter = 0; niter < cb.niters; niter++) {
+        if (cb.debug) {
+            cout << "At iteration " << niter << endl;
+            printMat2("E_prev", E_prev, m, n);
+            printMat2("E", E_prev, m, n);
+        }
 
         if (cb.debug && (niter == 0)) {
             stats(E_prev, m, n, &mx, &sumSq);
@@ -827,6 +837,7 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
 
 void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
     solveMPIArpit(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    // solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
 } 
 
 void printMat2(const char mesg[], double *E, int m, int n)
