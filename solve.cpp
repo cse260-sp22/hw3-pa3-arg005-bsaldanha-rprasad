@@ -172,36 +172,36 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs)
     }
 }
 
-inline void sendReceive(const int m, const int n, Direction direction, double *data, const int myrank, vector<MPI_Request> &requests)
+inline void sendReceive(const int m, const int n, Direction sendDirection, double *data, const int myrank, vector<MPI_Request> &requests)
 {
     int send_index, receive_index, otherProcessRank;
-    Direction otherDirection;
+    Direction receiveDirection;
 
-    switch (direction)
+    switch (sendDirection)
     {
     case LEFT:
         send_index = 1 + (n + 2);
         receive_index = (n + 2);
         otherProcessRank = myrank - 1;
-        otherDirection = RIGHT;
+        receiveDirection = RIGHT;
         break;
     case RIGHT:
         send_index = n + (n + 2);
         receive_index = n + 1 + (n + 2);
         otherProcessRank = myrank + 1;
-        otherDirection = LEFT;
+        receiveDirection = LEFT;
         break;
     case UP:
         send_index = 1 + (n + 2);
         receive_index = 1;
         otherProcessRank = myrank - cb.px;
-        otherDirection = DOWN;
+        receiveDirection = DOWN;
         break;
     case DOWN:
         send_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
         receive_index = (n + 2) * (m + 2) - (n + 2) + 1;
         otherProcessRank = myrank + cb.px;
-        otherDirection = UP;
+        receiveDirection = UP;
         break;
     }
 
@@ -212,25 +212,25 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
 
     MPI_Request send_request, recv_request;
 
-    if (direction == LEFT || direction == RIGHT)
+    if (sendDirection == LEFT || sendDirection == RIGHT)
     {
         // send left and right boundaries
         if (cb.debug)
-            cout << "[rank " << myrank << "] sent " << direction << " boundary to " << otherProcessRank << endl;
-        MPI_Isend(data + send_index, 1, column_datatype, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
+            cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
+        MPI_Isend(data + send_index, 1, column_datatype, otherProcessRank, sendDirection, MPI_COMM_WORLD, &send_request);
         if (cb.debug)
-            cout << "[rank " << myrank << "] receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
-        MPI_Irecv(data + receive_index, 1, column_datatype, otherProcessRank, otherDirection, MPI_COMM_WORLD, &recv_request);
+            cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
+        MPI_Irecv(data + receive_index, 1, column_datatype, otherProcessRank, receiveDirection, MPI_COMM_WORLD, &recv_request);
     }
     else
     {
         // send top and bottom boundaries
         if (cb.debug)
-            cout << "[rank " << myrank << "] sent " << direction << " boundary to " << otherProcessRank << endl;
-        MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
+            cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
+        MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, sendDirection, MPI_COMM_WORLD, &send_request);
         if (cb.debug)
-            cout << "[rank " << myrank << "] receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
-        MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, otherDirection, MPI_COMM_WORLD, &recv_request);
+            cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
+        MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, receiveDirection, MPI_COMM_WORLD, &recv_request);
     }
 
     requests.push_back(send_request);
