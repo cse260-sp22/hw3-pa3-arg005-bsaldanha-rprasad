@@ -665,7 +665,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
     }
 }
 
-void solveMPIArpit(double **_E, double **_E_prev, double *_R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
+void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
 {
 
 #ifndef _MPI_
@@ -967,8 +967,8 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
 
 void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
 {
-    	solveMPIArpit(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
-     //solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    solveMPI(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    // solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
 }
 
 
