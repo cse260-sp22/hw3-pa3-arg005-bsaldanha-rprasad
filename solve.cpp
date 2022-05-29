@@ -206,12 +206,11 @@ inline void sendReceive(const int m, const int n, Direction sendDirection, doubl
         break;
     }
 
-	if (cb.debug) {
-		cout << "[rank " << myrank << "] receive index for direction " << receiveDirection << " is " << receive_index << endl;
-		cout << "[rank " << myrank << "] send index for direction " << sendDirection << " is " << send_index << endl;
-		cout << "[rank " << myrank << "] m = " << m << ", n = " << n << endl;
-
-	}
+	// if (cb.debug) {
+	// 	cout << "[rank " << myrank << "] receive index for direction " << receiveDirection << " is " << receive_index << endl;
+	// 	cout << "[rank " << myrank << "] send index for direction " << sendDirection << " is " << send_index << endl;
+	// 	cout << "[rank " << myrank << "] m = " << m << ", n = " << n << endl;
+	// }
 
     // vector to send left and right boundaries
     MPI_Datatype column_datatype;
@@ -223,26 +222,26 @@ inline void sendReceive(const int m, const int n, Direction sendDirection, doubl
     if (sendDirection == LEFT || sendDirection == RIGHT)
     {
         // send left and right boundaries
-        if (cb.debug)
-            cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
+        // if (cb.debug)
+        //     cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
         MPI_Isend(data + send_index, 1, column_datatype, otherProcessRank, sendDirection, MPI_COMM_WORLD, &send_request);
-        if (cb.debug)
-            cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
+        // if (cb.debug)
+        //     cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
         MPI_Irecv(data + receive_index, 1, column_datatype, otherProcessRank, receiveDirection, MPI_COMM_WORLD, &recv_request);
     }
     else
     {
         // send top and bottom boundaries
-        if (cb.debug)
-            cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
+        // if (cb.debug)
+        //     cout << "[rank " << myrank << "] sent " << sendDirection << " boundary to " << otherProcessRank << endl;
         MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, sendDirection, MPI_COMM_WORLD, &send_request);
-        if (cb.debug)
-            cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
+        // if (cb.debug)
+        //     cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
         MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, receiveDirection, MPI_COMM_WORLD, &recv_request);
     }
 
-    requests.push_back(send_request);
-    requests.push_back(recv_request);
+    requests.emplace_back(send_request);
+    requests.emplace_back(recv_request);
 }
 
 void communicateGhostCells(const int m, const int n, double *data, const int my_rank, vector<MPI_Request> &requests)
@@ -319,9 +318,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-		if (cb.debug && my_rank == 0) {
-			// cout << "[ode pde] index = " << j << " to " << (j + n - 3) << endl;
-		}
         for (int i = 0; i < n - 2; i++)
         {
             applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
@@ -362,25 +358,21 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #endif
 
-	if (cb.debug && my_rank == 0) {
-		cout << "[Communication] total requests = " << requests.size() << endl;
-	}
+	// MPI_Status statuses[requests.size()];
+    MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
 
-	MPI_Status statuses[requests.size()];
-    MPI_Waitall(requests.size(), &requests[0], statuses);
+	// for (int k = 0; k < requests.size(); k++) {
+	// 	int count;
+	// 	MPI_Get_count(&statuses[k], MPI_DOUBLE, &count);
+	// 	if (cb.debug) {
+	// 		cout << "[rank " << my_rank << "] k=" << k << ": received entries: " << count << endl;
+	// 	}
+	// }
 
-	for (int k = 0; k < requests.size(); k++) {
-		int count;
-		MPI_Get_count(&statuses[k], MPI_DOUBLE, &count);
-		if (cb.debug) {
-			cout << "[rank " << my_rank << "] k=" << k << ": received entries: " << count << endl;
-		}
-	}
-
-if (cb.debug) {
-	cout << "[rank " << my_rank << " ]";
-	printMatFull("After communication: E_prev: ", E_prev, m + 2, n + 2);
-}
+// if (cb.debug) {
+// 	cout << "[rank " << my_rank << " ]";
+// 	printMatFull("After communication: E_prev: ", E_prev, m + 2, n + 2);
+// }
 
     // compute boundary cells
 #define FUSED 1
