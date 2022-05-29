@@ -126,7 +126,7 @@ sed -i -e "s/^#SBATCH --partition=.*/#SBATCH --partition=$partition_type/g" $tar
 sed -i -e "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
 sed -i -e "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
 sed -i -e "s/^srun.*/$newcommand/g" $target_slurm_file
-sed -i -e "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
+# sed -i -e "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 sed -i -e "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
 
