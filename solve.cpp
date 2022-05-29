@@ -31,6 +31,8 @@ void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m,int n);
 
+enum Direction { left = 0, right = 1, up = 2, down = 3 };
+
 extern control_block cb;
 
 // #ifdef SSE_VEC
@@ -147,179 +149,91 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs) {
     }
 }
 
-inline vector<MPI_Request> sendReceive(const int m, const int n, int direction, double *E_prev, const int myrank) {
-    int start_index = 1 + (n + 2);
-    int end_index_offset = -1;
-    int adder = -1;
+inline void sendReceive(const int m, const int n, Direction direction, double *data, const int myrank, vector<MPI_Request>& requests) {
+    int send_index, receive_index, otherProcessRank;
 
-    if(direction == 1) {
-        start_index = n + (n + 2);
-        end_index_offset = 1;
-        adder = 1;
-    } else if(direction == 2) {
-        start_index = 1 + (n + 2);
-        end_index_offset = -(n + 2);
-        adder = -cb.px;
-    } else if(direction == 3) {
-        start_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
-        end_index_offset = (n + 2);
-        adder = cb.px;
+    switch(direction) {
+        case Direction.left:
+            send_index = 1 + (n + 2);
+            receive_index = (n + 2);
+            otherProcessRank = myrank - 1;
+            break;
+        case Direction.right:
+            send_index = n + (n + 2);
+            receive_index = n + 1 + (n + 2);
+            otherProcessRank = myrank + 1;
+            break;
+        case Direction.up:
+            send_index = 1 + (n + 2);
+            receive_index = 1;
+            otherProcessRank = myrank - cb.px;
+            break;
+        case Direction.down:
+            send_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+            receive_index = (n + 2) * (m + 2) - (n + 2) + 1;
+            otherProcessRank = myrank + cb.px;
+            break;
     }
+
 
     MPI_Datatype left_right_boundary_col;
 
+    // vector to send left and right boundaries
     MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &left_right_boundary_col);
 
     MPI_Request send_request, recv_request;
-    MPI_Isend(E_prev[start_index], 1, left_right_boundary_col, myrank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
-    MPI_Irecv(E_prev[start_index + end_index_offset], 1, left_right_boundary_col, myrank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
 
-    vector<MPI_Request> requests;
+    if (direction == Direction.left || direction == Direction.right) {
+        // send left and right boundaries
+        MPI_Isend(data + send_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
+        MPI_Irecv(data + receive_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &recv_request);
+    } else {
+        // send top and bottom boundaries
+        MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
+        MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, direction, MPI_COMM_WORLD, &recv_request);
+    }
+
     requests.push_back(send_request);
     requests.push_back(recv_request);
-    return requests;
 }
 
-void communicateGhostCells(const int m, const int n, double *E_prev, const int my_rank) {
+void communicateGhostCells(const int m, const int n, double *data, const int my_rank, vector<MPI_Request>& requests) {
     // l = 0, r = 1, u = 2, d = 3
     // compute inner cells and populate ghost cells in parallel
     // once the inner cells are computed, `wait` for all ghost cells to be populated
     // compute outer cells
+    // data could be E_prev or R
+    int row = my_rank / cb.px;
+    int col = my_rank % cb.px;
 
-    bool leftUpper = my_rank == 0;
-    bool rightUpper = my_rank == cb.px - 1;
-    bool rightLower = my_rank == cb.px * cb.py - 1;
-    bool leftLower = my_rank == cb.px * (cb.py - 1);
+    bool communicateLeft = col == 0;
+    bool communicateRight = col == cb.px - 1;
+    bool communicateUp = row == 0;
+    bool communicateDown = row == cb.py - 1;
 
     MPI_Request above_send_request, above_recv_request;
     MPI_Request below_send_request, below_recv_request;
 
-    int top_start_index = 1 + (n + 2);
-    int bottom_start_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
-
-    vector<MPI_Request> requests;
-    vector<MPI_Request> requests_tmp;
-
-    bool topBoundary = my_rank < cb.px;
-    bool leftBoundary = (my_rank % cb.px) == 0;
-    bool rightBoundary = ((my_rank + 1) % cb.px) == 0;
-    bool bottomBoundary = my_rank >= (cb.px * (cb.py - 1));
-
-    // corner processors
-    // these need comms only at 2 boundaries
-    if(leftUpper || rightUpper || rightLower || leftLower) {
-
-        if (leftUpper) {
-            // send/receive m elements to/from the processor to the right and
-            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (rightUpper) {
-            // send/receive m elements to/from the processor to the left and
-            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (rightLower) {
-            // send/receive m elements to/from the processor to the left and
-            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor above
-            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (leftLower) {
-            // send/receive m elements to/from the processor to the right and
-            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor above
-            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
+    if (communicateLeft) {
+        sendReceive(m, n, Direction.left, data, my_rank, requests);
     }
 
-    // boundary processors
-    // these need comms only at 3 boundaries
-    // corner processors will not be included in these because they will already have been handled before
-    else if(topBoundary || leftBoundary || rightBoundary || bottomBoundary) {
-        if (topBoundary) {
-            // send/receive m elements to/from the processors to the left and right
-            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (leftBoundary) {
-            // send/receive m elements to/from the processor to the right
-            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processors above and below
-            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-
-            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (bottomBoundary) {
-            // send/receive m elements to/from the processors to the left and right
-            requests_tmp = sendReceiveRight(m, n, 1, E_prev, left_right_send_buf, left_right_recv_buf);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            requests_tmp = sendReceiveLeft(m, n, 0, E_prev, left_right_send_buf, left_right_recv_buf);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processor above
-            requests_tmp = sendReceive(m, n, 2, E_prev);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
-
-        if (rightBoundary) {
-            // send/receive m elements to/from the processor to the left
-            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            // send/receive n elements to/from the processors above and below
-            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-
-            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
-            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-        }
+    if (communicateRight) {
+        sendReceive(m, n, Direction.right, data, my_rank, requests);
     }
 
-    // interior processors
-    // these need comms at all 4 boundaries
-    else {
-        requests_tmp = sendReceiveRight(m, n, 1, E_prev);
-        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-
-        requests_tmp = sendReceiveLeft(m, n, 0, E_prev);
-        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-
-
-        requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
-        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-
-        requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
-        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
+    if (communicateUp) {
+        sendReceive(m, n, Direction.up, data, my_rank, requests);
     }
 
-    return requests;
+    if (communicateDown) {
+        sendReceive(m, n, Direction.down, data, my_rank, requests);
+    }
 }
 
 inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank) {
     vector<MPI_Request> requests;
-    requests = communicateGhostCells(m, n, E_prev, my_rank);
+    requests = communicateGhostCells(m, n, E_prev, my_rank, requests);
 
     // int interior_start_index = 2 + 2 * (n + 2);
     // int interior_end_index = (n + 2) * (m + 2) - 3 * (n + 2) + (n + 1);
