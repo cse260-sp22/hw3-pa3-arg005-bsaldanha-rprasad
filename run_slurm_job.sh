@@ -84,6 +84,7 @@ nodes=$(get_nodes $px $py)
 email=$(get_email)
 partition_type=$(get_partition_type)
 new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
+outputfile="%j.out"
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
@@ -91,5 +92,6 @@ sed -i '' "s/^#SBATCH --partition=.*/#SBATCH --partition=$partition_type/g" $tar
 sed -i '' "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
 sed -i '' "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
 sed -i '' "s/^srun.*/$newcommand/g" $target_slurm_file
+sed -i '' "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 
 sbatch $target_slurm_file
