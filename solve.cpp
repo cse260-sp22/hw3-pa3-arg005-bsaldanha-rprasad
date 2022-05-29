@@ -22,6 +22,7 @@
 #ifdef _MPI_
 #include <mpi.h>
 #endif
+#define FUSED 1
 using namespace std;
 
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
@@ -309,8 +310,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
     int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
     int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 
-#define FUSED 1
-
 #ifdef FUSED
     // Solve for the excitation, a PDE
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
@@ -375,7 +374,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
 // }
 
     // compute boundary cells
-#define FUSED 1
 
 #ifdef FUSED
     // Solve for the excitation, a PDE
@@ -485,7 +483,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 
     // last col
     start_index = n + (n + 2);
-    end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n) - row_offset;
+    end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n);
 
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
@@ -685,14 +683,6 @@ void solveMPIArpit(double **_E, double **_E_prev, double *_R, double alpha, doub
     // initializing current processor dimensions
     int m, n; // dimensions of E current processor would compute
     setCurrentProcessorDim(m, n, myrank, nprocs);
-    // there would be padding of 2 as well. TODO!
-
-    // offsets in terms of processors
-    // int rowOffset = dimensionOffset(cb.m, cb.py, myrank / cb.px);
-    // int colOffset = dimensionOffset(cb.n, cb.px, myrank % cb.px);
-
-    // int innerBlockRowStartIndex = rowOffset * (cb.n + 2) + (colOffset + 1);
-    // int innerBlockRowEndIndex = innerBlockRowStartIndex + m * (cb.n + 2);
 
     int innerBlockRowStartIndex = (n + 2) + 1;
     int innerBlockRowEndIndex = (((m + 2) * (n + 2) - 1) - (n)) - (n + 2);
@@ -872,8 +862,6 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
         }
 
         //////////////////////////////////////////////////////////////////////////////
-
-#define FUSED 1
 
 #ifdef FUSED
         // Solve for the excitation, a PDE
