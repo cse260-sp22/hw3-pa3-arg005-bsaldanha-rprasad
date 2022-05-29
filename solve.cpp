@@ -432,8 +432,8 @@ inline void gatherFinalValues(
     // double* recvE = new double[receiveCount];
     // double* recvR = new double[receiveCount];
 
-	MPI_Gatherv(r_tempE, sendcounts, MPI_DOUBLE, finE, recieveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Gatherv(r_tempR, sendcounts, MPI_DOUBLE, finR, recieveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempE, sendcounts, MPI_DOUBLE, finE, receiveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempR, sendcounts, MPI_DOUBLE, finR, receiveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	unpackForPlotting(finE, finE_unpacked, nprocs);
 	unpackForPlotting(finR, finR_unpacked, nprocs);
