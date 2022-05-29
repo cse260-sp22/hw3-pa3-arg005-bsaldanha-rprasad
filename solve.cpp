@@ -304,11 +304,11 @@ inline void applyODEPDE(double *E_tmp, double *E_prev_tmp, double *R_tmp, const 
 inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank)
 {
     vector<MPI_Request> requests;
-    communicateGhostCells(m, n, E_prev, my_rank, requests);
+    if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests);
 
     // this computes interior
-    int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
-    int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
+    const int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
+    const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 
 #ifdef FUSED
     // Solve for the excitation, a PDE
@@ -358,7 +358,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #endif
 
 	// MPI_Status statuses[requests.size()];
-    MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
+    if (!cb.noComm) MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
 
 	// for (int k = 0; k < requests.size(); k++) {
 	// 	int count;
@@ -379,7 +379,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // Solve for the excitation, a PDE
 
     // first row
-    int row_offset = 1 + (n + 2);
+    int row_offset = (n + 2) + 1;
     E_tmp = E + row_offset;
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
