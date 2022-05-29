@@ -251,7 +251,8 @@ void communicateGhostCells(const int m, const int n, double *data, const int my_
     // compute inner cells and populate ghost cells in parallel
     // once the inner cells are computed, `wait` for all ghost cells to be populated
     // compute outer cells
-    // data could be E_prev or R
+    // data: E_prev
+
     int row = my_rank / cb.px;
     int col = my_rank % cb.px;
 
@@ -306,8 +307,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
     communicateGhostCells(m, n, E_prev, my_rank, requests);
 
     // this computes interior
-    int interior_start_row = 1 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
-    int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 1;
+    int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
+    int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 
 #define FUSED 1
 
@@ -318,7 +319,10 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-        for (int i = 2; i < n; i++)
+		if (cb.debug && my_rank == 0) {
+			// cout << "[ode pde] index = " << j << " to " << (j + n - 3) << endl;
+		}
+        for (int i = 0; i < n - 2; i++)
         {
             applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
             // E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
@@ -328,11 +332,11 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #else
     // Solve for the excitation, a PDE
-    for (int j = interior_start_row; j < interior_end_row; j += (n + 2))
+    for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
-        for (int i = 2; i < n; i++)
+        for (int i = 0; i < n - 2; i++)
         {
             applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
             // E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
@@ -344,12 +348,12 @@ inline void compute(const int m, const int n, const double dt, const double alph
      *     to the next timtestep
      */
 
-    for (int j = interior_start_row; j < interior_end_row; j += (n + 2))
+    for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-        for (int i = 2; i < n; i++)
+		for (int i = 0; i < n - 2; i++)
         {
             applyPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt);
             // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
@@ -390,7 +394,7 @@ if (cb.debug) {
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
     }
@@ -401,7 +405,7 @@ if (cb.debug) {
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
     }
@@ -417,7 +421,7 @@ if (cb.debug) {
 
     // last col
     start_index = n + (n + 2);
-    end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n) - row_offset;
+    end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n);
 
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
@@ -432,7 +436,7 @@ if (cb.debug) {
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
     }
@@ -442,7 +446,7 @@ if (cb.debug) {
      *     to the next timtestep
      */
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyPDE(E, E_prev, R, i, m, n, dt);
     }
@@ -453,7 +457,7 @@ if (cb.debug) {
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
     }
@@ -463,7 +467,7 @@ if (cb.debug) {
      *     to the next timtestep
      */
 
-    for (int i = 1; i <= n; i++)
+	for (int i = 0; i < n; i++)
     {
         applyPDE(E, E_prev, R, i, m, n, dt);
     }
