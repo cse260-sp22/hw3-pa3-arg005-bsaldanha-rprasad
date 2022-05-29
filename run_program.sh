@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_program.sh --px 1 --px 2
+# bash ./run_program.sh --px 1 --py 2 --i 2000 -n 800
 
 while [ $# -gt 0 ]; do
     if [[ $1 == "--"* ]]; then
