@@ -557,7 +557,6 @@ inline void scatterInitialCondition(
     }
 }
 
-// TODO: Code gather algo, send all data in buffer and then unpack it to get final matrix
 inline void gatherFinalValues(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
     double *recvE, double *recvR)
@@ -938,7 +937,24 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
 
-    // Swap pointers so we can re-use the arrays
+//TODO: l2norm and linf reduce -> send to processor 0
+
+	//Method1: put elements in single array, single reduce operation
+	double *tempStats = alloc1D(1, 2);
+	tempStats[0] = L2;
+	tempStats[1] = Linf;
+
+	double *finStats = alloc1D(1, 2);
+
+	MPI_Reduce(tempStats, finStats, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	//Method2: double reduce operation
+	//double *finStats = alloc1D(1, 2);
+
+	//MPI_Reduce(&L2, finStats, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	//MPI_Reduce(&Linf, finStats + 1, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+	// Swap pointers so we can re-use the arrays
     *_E = E;
     *_E_prev = E_prev;
 }
