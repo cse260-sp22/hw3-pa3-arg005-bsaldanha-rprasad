@@ -205,6 +205,12 @@ inline void sendReceive(const int m, const int n, Direction sendDirection, doubl
         break;
     }
 
+	if (cb.debug) {
+		cout << "[rank " << myrank << "] receive index for direction " << receiveDirection << " is " << receive_index << endl;
+		cout << "[rank " << myrank << "] send index for direction " << sendDirection << " is " << send_index << endl;
+cout << MPI_UNDEFINED << endl;
+	}
+
     // vector to send left and right boundaries
     MPI_Datatype column_datatype;
     MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &column_datatype);
