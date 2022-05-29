@@ -29,7 +29,6 @@ else
 fi
 
 
-
 get_email() {
     user=$(echo $USER)
     if [ "$expanse" -eq "0" ]; then
@@ -114,9 +113,9 @@ outputfile="apf.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.%j.%N.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 
-new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $n -x $px -y $py"
+new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
 if [ "$profile" -eq "1" ]; then
-    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $n -x $px -y $py"
+    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $i -x $px -y $py"
 fi
 
 
@@ -137,3 +136,4 @@ else
 fi
 
 sbatch $target_slurm_file
+echo "cat $outputfile"
