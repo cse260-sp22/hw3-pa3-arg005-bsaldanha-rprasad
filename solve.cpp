@@ -104,16 +104,10 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
         for (int i = 0; i < m; ++i) {
             row = rowOffset + 1 + i;
             col = colOffset + 1;
-            // cout << "row = " << row << " col = " << col << endl;
-            // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
             memcpy(packed + idx, data + row * (cb.n + 2) + col, n * sizeof(double));
             idx += n;
-            // cout << "packed array: from " << idx * n << ": ";
-            // printArray(packed + idx, n);
         }
     }
-    // cout << "[------] final packed array: ";
-    // printArray(packed, cb.m * cb.n);
 }
 
 void repackForGathering(double *data, double *packed, const int nprocs, const int myrank) {
@@ -124,15 +118,9 @@ void repackForGathering(double *data, double *packed, const int nprocs, const in
 	for (int i = 0; i < m; ++i) {
 		row =  1 + i;
 		col = 1;
-		// cout << "row = " << row << " col = " << col << endl;
-		// cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
 		memcpy(packed + idx, data + row * (n + 2) + col, n * sizeof(double));
 		idx += n;
-		// cout << "packed array: from " << idx * n << ": ";
-		// printArray(packed + idx, n);
 	}
-    // cout << "[------] final packed array: ";
-    // printArray(packed, cb.m * cb.n);
 }
 
 void unpackForPlotting(double *data, double *unpacked, const int nprocs) {
@@ -543,9 +531,6 @@ inline void scatterInitialCondition(
     double* sendE = alloc1D(cb.m, cb.n);
     double* sendR = alloc1D(cb.m, cb.n);
 
-    // printMat2("E",E,cb.m, cb.n);
-    // printMat2("R",R,cb.m, cb.n);
-
     repackForScattering(E, sendE, nprocs);
     repackForScattering(R, sendR, nprocs);
 
@@ -570,8 +555,6 @@ inline void scatterInitialCondition(
         cout << "\n";
     }
 
-    // double* recvE = new double[receiveCount];
-    // double* recvR = new double[receiveCount];
     double* s_tempE = alloc1D(m, n);
     double* s_tempR = alloc1D(m, n);
 
@@ -582,29 +565,14 @@ inline void scatterInitialCondition(
     // free(sendR);
     // free(sendcounts);
     // free(senddispls);
-    
-    // pad recvE and recvR
-    // memset(recvE + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
-    // memset(recvR + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
-    // memset(recvE)
 
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
     memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
-
-    // for (int j = (m - 1) * n; j >= 0; j -= n) {
-    //     memcpy(recvE + (n + 2) * j + 1, recvE + j, n * sizeof(double));
-    //     memcpy(recvR + (n + 2) * j + 1, recvR + j, n * sizeof(double));
-    // }
 
     for (int j = 0; j < m; ++j) {
         memcpy(recvE + (n + 2) * (j + 1) + 1, s_tempE + j * n, n * sizeof(double));
         memcpy(recvR + (n + 2) * (j + 1) + 1, s_tempR + j * n, n * sizeof(double));
     }
-
-    // cout << "my R: " << "my rank = " << myrank << ": ";
-    // printArray(recvR, (m + 2) * (n + 2));
-    // cout << "my E: " << "my rank = " << myrank << ": ";
-    // printArray(recvE, (m + 2) * (n + 2));
 }
 
 //TODO: Code gather algo, send all data in buffer and then unpack it to get final matrix
