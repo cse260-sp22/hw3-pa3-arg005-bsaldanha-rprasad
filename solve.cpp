@@ -216,20 +216,20 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
     {
         // send left and right boundaries
         if (cb.debug)
-            cout << "sent " << direction << " boundary to " << otherProcessRank << endl;
+            cout << "[rank " << myrank << "] sent " << direction << " boundary to " << otherProcessRank << endl;
         MPI_Isend(data + send_index, 1, column_datatype, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
         if (cb.debug)
-            cout << "receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
+            cout << "[rank " << myrank << "] receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
         MPI_Irecv(data + receive_index, 1, column_datatype, otherProcessRank, otherDirection, MPI_COMM_WORLD, &recv_request);
     }
     else
     {
         // send top and bottom boundaries
         if (cb.debug)
-            cout << "sent " << direction << " boundary to " << otherProcessRank << endl;
+            cout << "[rank " << myrank << "] sent " << direction << " boundary to " << otherProcessRank << endl;
         MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
         if (cb.debug)
-            cout << "receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
+            cout << "[rank " << myrank << "] receiving " << otherDirection << " boundary from " << otherProcessRank << endl;
         MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, otherDirection, MPI_COMM_WORLD, &recv_request);
     }
 
@@ -350,7 +350,24 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #endif
 
-    MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
+	if (cb.debug && my_rank == 0) {
+		cout << "[Communication] total requests = " << requests.size() << endl;
+	}
+
+	MPI_Status statuses[requests.size()];
+    MPI_Waitall(requests.size(), &requests[0], statuses);
+
+	for (int k = 0; k < requests.size(); k++) {
+		int count;
+		MPI_Get_count(&statuses[k], MPI_DOUBLE, &count);
+		if (cb.debug && my_rank == 0) {
+			cout << "k=" << k << ": received entries: " << count << endl;
+		}
+	}
+
+if (cb.debug && my_rank == 0) {
+	printMat2("After communication: E_prev: ", E_prev, m, n);
+}
 
     // compute boundary cells
 #define FUSED 1
@@ -702,6 +719,12 @@ void solveMPIArpit(double **_E, double **_E_prev, double *_R, double alpha, doub
     // the desired number of iterations
     for (niter = 0; niter < cb.niters; niter++)
     {
+		if (cb.debug && myrank == 0)
+		{
+            cout << "At iteration " << niter << endl;
+            printMat2("E_prev", E_prev, m, n);
+            printMat2("E", E_prev, m, n);
+		}
 
         if (cb.debug && (niter == 0))
         {
@@ -924,6 +947,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
     solveMPIArpit(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
     // solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
 }
+
 
 void printMat2(const char mesg[], double *E, int m, int n)
 {
