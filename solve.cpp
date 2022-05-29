@@ -32,6 +32,7 @@ void printArrayInt(int *E, int m);
 double *alloc1D(int m,int n);
 
 enum Direction { LEFT = 0, RIGHT = 1, UP = 2, DOWN = 3 };
+MPI_Datatype COLUMN_VECTOR;
 
 extern control_block cb;
 
@@ -176,17 +177,17 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
     }
 
 
-    MPI_Datatype left_right_boundary_col;
+    MPI_Type_commit(&COLUMN_VECTOR);
 
     // vector to send left and right boundaries
-    MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &left_right_boundary_col);
+    MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &COLUMN_VECTOR);
 
     MPI_Request send_request, recv_request;
 
     if (direction == LEFT || direction == RIGHT) {
         // send left and right boundaries
-        MPI_Isend(data + send_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
-        MPI_Irecv(data + receive_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &recv_request);
+        MPI_Isend(data + send_index, 1, COLUMN_VECTOR, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
+        MPI_Irecv(data + receive_index, 1, COLUMN_VECTOR, otherProcessRank, direction, MPI_COMM_WORLD, &recv_request);
     } else {
         // send top and bottom boundaries
         MPI_Isend(data + send_index, n, MPI_DOUBLE, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
