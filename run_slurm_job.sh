@@ -64,7 +64,10 @@ get_n() {
 }
 
 get_partition_type() {
-    if [ "$shared" -eq "0" ]; then
+    if [ "$expanse" -eq "0" ]; then
+        # if sorken, return CLUSTER
+        echo "CLUSTER"
+    elif [ "$shared" -eq "0" ]; then
         echo "compute"
     elif [ "$shared" -eq "1" ]; then
         echo "shared"
