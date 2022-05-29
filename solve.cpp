@@ -319,7 +319,7 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
 
 inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank) {
     vector<MPI_Request> requests;
-    requests = communicateGhostCells(m, n, *E_prev, my_rank);
+    requests = communicateGhostCells(m, n, E_prev, my_rank);
 
     // int interior_start_index = 2 + 2 * (n + 2);
     // int interior_end_index = (n + 2) * (m + 2) - 3 * (n + 2) + (n + 1);
@@ -327,7 +327,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // this computes interior
     int interior_start_row = 2 + 2 * (n + 2);
     int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
-    for(int niter = 0; i < cb.niters; niter++) {
+    for(int niter = 0; niter < cb.niters; niter++) {
         #define FUSED 1
 
         #ifdef FUSED
@@ -372,7 +372,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
 
     // compute boundary cells
-    for(int niter = 0; i < cb.niters; niter++) {
+    for(int niter = 0; niter < cb.niters; niter++) {
         #define FUSED 1
 
         #ifdef FUSED
