@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30
+# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30 --profile 0
 # N is 0 means N0: (n = 800)
 
 while [ $# -gt 0 ]; do
@@ -20,12 +20,15 @@ i=${i:-10000}
 shared=${shared:-0}
 expanse=${expanse:-1}
 t=${t:-60} # time in seconds
+profile=${profile:-0}
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
 else
     target_slurm_file="$(pwd)/expanse.slurm"
 fi
+
+
 
 get_email() {
     user=$(echo $USER)
@@ -107,10 +110,15 @@ nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
 partition_type=$(get_partition_type)
-new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
 outputfile="%j.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
+
+new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
+if [ "$profile" -eq "1" ]; then
+    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io ./apf -n $n -i $n -x $px -y $py"
+fi
+
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
@@ -121,5 +129,11 @@ sed -i '' "s/^srun.*/$newcommand/g" $target_slurm_file
 sed -i '' "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 sed -i '' "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
 sed -i '' "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
+
+if [ "$profile" -eq "0" ]; then
+    sed -i '' "s/.*load tau.*//g" $target_slurm_file
+else
+    echo -n "module load tau" >> $target_slurm_file
+fi
 
 sbatch $target_slurm_file
