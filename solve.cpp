@@ -529,16 +529,6 @@ inline void gatherFinalValues(
     // free(sendR);
     // free(sendcounts);
     // free(senddispls);
-
-    // for (int j = (m - 1) * n; j >= 0; j -= n) {
-    //     memcpy(recvE + (n + 2) * j + 1, recvE + j, n * sizeof(double));
-    //     memcpy(recvR + (n + 2) * j + 1, recvR + j, n * sizeof(double));
-    // }
-
-    // cout << "my R: " << "my rank = " << myrank << ": ";
-    // printArray(recvR, (m + 2) * (n + 2));
-    // cout << "my E: " << "my rank = " << myrank << ": ";
-    // printArray(recvE, (m + 2) * (n + 2));
 }
 
 void padBoundaries(int m, int n, double *E_prev, const int myrank) {
@@ -624,8 +614,9 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
     // Simulated time is different from the integer timestep number
     double t = 0.0;
     double *E = recvE;
-    double *R_tmp = recvR;
-    double *E_tmp = recvE;
+    double *R = recvR;
+    double *R_tmp = R;
+    double *E_tmp = E;
     double *E_prev_tmp = recvEprev;
     E_prev = recvEprev;
 
@@ -649,46 +640,8 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
+        compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
 
-#define FUSED 1
-
-#ifdef FUSED
-        // Solve for the excitation, a PDE
-        for (j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j += (n + 2)) {
-            E_tmp = E + j;
-            E_prev_tmp = E_prev + j;
-            R_tmp = R + j;
-            for (i = 0; i < n; i++) {
-                E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-                E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-                R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
-            }
-        }
-#else
-        // Solve for the excitation, a PDE
-        for (j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j += (n + 2)) {
-            E_tmp = E + j;
-            E_prev_tmp = E_prev + j;
-            for (i = 0; i < n; i++) {
-                E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-            }
-        }
-
-        /*
-         * Solve the ODE, advancing excitation and recovery variables
-         *     to the next timtestep
-         */
-
-        for (j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j += (n + 2)) {
-            E_tmp = E + j;
-            R_tmp = R + j;
-            E_prev_tmp = E_prev + j;
-            for (i = 0; i < n; i++) {
-                E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-                R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
-            }
-        }
-#endif
         /////////////////////////////////////////////////////////////////////////////////
 
         if (cb.stats_freq) {
