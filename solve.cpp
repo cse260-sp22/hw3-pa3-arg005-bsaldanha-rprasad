@@ -27,6 +27,7 @@ using namespace std;
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
+void printMatFull(const char mesg[], double *E, int m, int n);
 void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m, int n);
@@ -208,7 +209,8 @@ inline void sendReceive(const int m, const int n, Direction sendDirection, doubl
 	if (cb.debug) {
 		cout << "[rank " << myrank << "] receive index for direction " << receiveDirection << " is " << receive_index << endl;
 		cout << "[rank " << myrank << "] send index for direction " << sendDirection << " is " << send_index << endl;
-cout << MPI_UNDEFINED << endl;
+		cout << "[rank " << myrank << "] m = " << m << ", n = " << n << endl;
+
 	}
 
     // vector to send left and right boundaries
@@ -366,13 +368,14 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	for (int k = 0; k < requests.size(); k++) {
 		int count;
 		MPI_Get_count(&statuses[k], MPI_DOUBLE, &count);
-		if (cb.debug && my_rank == 0) {
-			cout << "k=" << k << ": received entries: " << count << endl;
+		if (cb.debug) {
+			cout << "[rank " << my_rank << "] k=" << k << ": received entries: " << count << endl;
 		}
 	}
 
-if (cb.debug && my_rank == 0) {
-	printMat2("After communication: E_prev: ", E_prev, m, n);
+if (cb.debug) {
+	cout << "[rank " << my_rank << " ]";
+	printMatFull("After communication: E_prev: ", E_prev, m + 2, n + 2);
 }
 
     // compute boundary cells
@@ -518,6 +521,7 @@ inline void scatterInitialCondition(
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
 
+/*
     if (myrank == 0 && cb.debug)
     {
         cout << "sendcounts: ";
@@ -536,6 +540,7 @@ inline void scatterInitialCondition(
         printArray(sendR, (cb.m + 2) * (cb.n + 2));
         cout << "\n";
     }
+*/
 
     double *s_tempE = alloc1D(m, n);
     double *s_tempR = alloc1D(m, n);
@@ -640,7 +645,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
             E_prev[i] = E_prev[i + (n + 2) * 2];
         }
     }
-    else if (row == (cb.m - 1))
+    if (row == (cb.py - 1))
     {
         // Fills in the BOTTOM Ghost Cells
         for (i = ((m + 2) * (n + 2) - (n + 2) + 1); i < (m + 2) * (n + 2) - 1; i++)
@@ -657,7 +662,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
             E_prev[i] = E_prev[i + 2];
         }
     }
-    else if (col == (cb.n - 1))
+    if (col == (cb.px - 1))
     {
         // Fills in the RIGHT Ghost Cells
         for (i = (n + 1 + n + 2); i < (m + 1) * (n + 2); i += (n + 2))
@@ -727,9 +732,14 @@ void solveMPIArpit(double **_E, double **_E_prev, double *_R, double alpha, doub
     {
 		if (cb.debug && myrank == 0)
 		{
+			cout << "[rank " << myrank << "]";
             cout << "At iteration " << niter << endl;
+			cout << "[rank " << myrank << "]";
             printMat2("E_prev", E_prev, m, n);
+			cout << "[rank " << myrank << "]";
             printMat2("E", E_prev, m, n);
+			cout << "[rank " << myrank << "]";
+            cout << "At iteration " << niter << endl;
 		}
 
         if (cb.debug && (niter == 0))
@@ -813,6 +823,7 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
             cout << "At iteration " << niter << endl;
             printMat2("E_prev", E_prev, m, n);
             printMat2("E", E_prev, m, n);
+            cout << "At iteration " << niter << endl;
         }
 
         if (cb.debug && (niter == 0))
