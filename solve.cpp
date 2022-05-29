@@ -246,7 +246,7 @@ inline void applyODEPDE(double *E_tmp, double *E_prev_tmp, double *R_tmp, const 
 
 inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank) {
     vector<MPI_Request> requests;
-    requests = communicateGhostCells(m, n, E_prev, my_rank, requests);
+    communicateGhostCells(m, n, E_prev, my_rank, requests);
 
     // this computes interior
     int interior_start_row = 1 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
@@ -570,7 +570,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank) {
 	}
 }
 
-void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
+void solveMPIArpit(double **_E, double **_E_prev, double *_R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf) {
 
     #ifndef _MPI_
         cout << "Error: MPI not enabled" << endl;
@@ -609,7 +609,7 @@ void solveMPIArpit(double **_E, double **_E_prev, double *R, double alpha, doubl
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
-    scatterInitialCondition(E_prev, R, nprocs, myrank, m, n, recvEprev, recvR);
+    scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, recvEprev, recvR);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
