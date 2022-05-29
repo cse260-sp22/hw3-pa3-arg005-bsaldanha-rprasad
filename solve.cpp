@@ -18,6 +18,7 @@
 #include "cblock.h"
 #include <emmintrin.h>
 #include <cstring>
+#include <vector>
 #ifdef _MPI_
 #include <mpi.h>
 #endif
@@ -158,33 +159,41 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs) {
     }
 }
 
-void inline sendReceiveLeft(const int m, const int n, double *E_prev, double *left_right_send_buf, double *left_right_recv_buf) {
-    int left_start_index = 1 + (n + 2);
-    for (int i = 0; i < m; i++) {
-        left_right_send_buf[i] = E_prev[i + left_start_index];
-    }
-    MPI_Isend(left_right_send_buf, m, MPI_DOUBLE, my_rank - 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-    MPI_Irecv(left_right_recv_buf, m, MPI_DOUBLE, my_rank - 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-    // not sure if this is the right place for this to be in
-    for(int i = 0; i < m; i++) {
-        E_prev[i * (n + 2) + left_start_index - 1] = left_right_recv_buf[i]
-    }
-}
+inline vector<MPI_Request> sendReceive(const int m, const int n, int direction, double *E_prev) {
+    int start_index = 1 + (n + 2);
+    int end_index_offset = -1
+    int adder = -1;
 
-void inline sendReceiveRight(const int m, const int n, double *E_prev, double *left_right_send_buf, double *left_right_recv_buf) {
-    int right_start_index = n + (n + 2);
-    for (int i = 0; i < m; i++) {
-        left_right_send_buf[i] = E_prev[i + right_start_index];
+    if(direction == 1) {
+        start_index = n + (n + 2);
+        end_index_offset = 1;
+        adder = 1;
+    } else if(direction == 2) {
+        start_index = 1 + (n + 2);
+        end_index_offset = -(n + 2);
+        adder = -cb.px;
+    } else if(direction == 3) {
+        start_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+        end_index_offset = (n + 2);
+        adder = cb.px;
     }
-    MPI_Isend(left_right_send_buf, m, MPI_DOUBLE, my_rank + 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-    MPI_Irecv(left_right_recv_buf, m, MPI_DOUBLE, my_rank + 1, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-    // not sure if this is the right place for this to be in
-    for(int i = 0; i < m; i++) {
-        E_prev[i * (n + 2) + right_start_index + 1] = left_right_recv_buf[i]
-    }
+
+    MPI_Datatype left_right_boundary_col;
+
+    MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &left_right_boundary_col);
+
+    MPI_Request send_request, recv_request;
+    MPI_Isend(E_prev[start_index], 1, left_right_boundary_col, my_rank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
+    MPI_Irecv(E_prev[start_index + end_index_offset], 1, left_right_boundary_col, my_rank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
+
+    vector<MPI_Request> requests;
+    requests.push_back(send_request);
+    requests.push_back(recv_request);
+    return requests;
 }
 
 void communicateGhostCells(const int m, const int n, double *E_prev, const int my_rank) {
+    // l = 0, r = 1, u = 2, d = 3
     // compute inner cells and populate ghost cells in parallel
     // once the inner cells are computed, `wait` for all ghost cells to be populated
     // compute outer cells
@@ -194,13 +203,19 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
     bool rightLower = my_rank == cb.px * cb.py - 1;
     bool leftLower = my_rank == cb.px * (cb.py - 1);
 
-    MPI_Request *request;
+    MPI_Request above_send_request, above_recv_request;
+    MPI_Request below_send_request, below_recv_request;
 
     int top_start_index = 1 + (n + 2);
     int bottom_start_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
 
-    double *left_right_send_buf = malloc(m * sizeof(double));
-    double *left_right_recv_buf = malloc(m * sizeof(double));
+    vector<MPI_Request> requests;
+    vector<MPI_Request> requests_tmp;
+
+    bool topBoundary = my_rank < cb.px;
+    bool leftBoundary = (my_rank % cb.px) == 0;
+    bool rightBoundary = ((my_rank + 1) % cb.px) == 0;
+    bool bottomBoundary = my_rank >= (cb.px * (cb.py - 1));
 
     // corner processors
     // these need comms only at 2 boundaries
@@ -208,41 +223,40 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
 
         if (leftUpper) {
             // send/receive m elements to/from the processor to the right and
-            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (rightUpper) {
             // send/receive m elements to/from the processor to the left and
-            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (rightLower) {
             // send/receive m elements to/from the processor to the left and
-            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor above
-            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (leftLower) {
             // send/receive m elements to/from the processor to the right and
-            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor above
-            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
     }
-
-    bool topBoundary = my_rank < cb.px;
-    bool leftBoundary = (my_rank % cb.px) == 0;
-    bool rightBoundary = ((my_rank + 1) % cb.px) == 0;
-    bool bottomBoundary = my_rank >= (cb.px * (cb.py - 1));
 
     // boundary processors
     // these need comms only at 3 boundaries
@@ -250,61 +264,271 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
     else if(topBoundary || leftBoundary || rightBoundary || bottomBoundary) {
         if (topBoundary) {
             // send/receive m elements to/from the processors to the left and right
-            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
-            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
+            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (leftBoundary) {
             // send/receive m elements to/from the processor to the right
-            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processors above and below
-            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (bottomBoundary) {
             // send/receive m elements to/from the processors to the left and right
-            sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
-            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceiveRight(m, n, 1, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
+            requests_tmp = sendReceiveLeft(m, n, 0, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor above
-            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (rightBoundary) {
             // send/receive m elements to/from the processor to the left
-            sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processors above and below
-            MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-            MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-            MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
     }
 
     // interior processors
     // these need comms at all 4 boundaries
     else {
-        sendReceiveRight(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
-        sendReceiveLeft(m, n, E_prev, left_right_send_buf, left_right_recv_buf);
+        requests_tmp = sendReceiveRight(m, n, 1, E_prev);
+        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
+
+        requests_tmp = sendReceiveLeft(m, n, 0, E_prev);
+        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
 
-        MPI_Isend(E_prev[bottom_start_index], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-        MPI_Irecv(E_prev[bottom_start_index + (n + 2)], n, MPI_DOUBLE, my_rank + cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        requests_tmp = sendReceive(m, n, 3, E_prev);
+        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-        MPI_Isend(E_prev[top_start_index], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
-        MPI_Irecv(E_prev[top_start_index - (n + 2)], n, MPI_DOUBLE, my_rank - cb.px, MPI_ANY_TAG, MPI_COMM_WORLD, request);
+        requests_tmp = sendReceive(m, n, 2, E_prev);
+        requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
     }
 
-    free(left_right_send_buf);
-    free(left_right_recv_buf);
+    return requests;
+}
+
+inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank) {
+    vector<MPI_Request> requests;
+    requests = communicateGhostCells(m, n, *E_prev, my_rank);
+
+    // int interior_start_index = 2 + 2 * (n + 2);
+    // int interior_end_index = (n + 2) * (m + 2) - 3 * (n + 2) + (n + 1);
+
+    // this computes interior
+    int interior_start_row = 2 + 2 * (n + 2);
+    int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
+    for(int niter = 0; i < cb.niters; niter++) {
+        #define FUSED 1
+
+        #ifdef FUSED
+                // Solve for the excitation, a PDE
+                for(int j = interior_start_row; j < interior_end_row; j += (n + 2)) {
+                    E_tmp = E + j;
+                    E_prev_tmp = E_prev + j;
+                    R_tmp = R + j;
+                    for (int i = 2; i < n; i++) {
+                        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                    }
+                }
+        #else
+                // Solve for the excitation, a PDE
+                for(int j = interior_start_row; j < interior_end_row; j += (n + 2)) {
+                    E_tmp = E + j;
+                    E_prev_tmp = E_prev + j;
+                    for (int i = 2; i < n; i++) {
+                        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                    }
+                }
+
+                /*
+                * Solve the ODE, advancing excitation and recovery variables
+                *     to the next timtestep
+                */
+
+                for(int j = interior_start_row; j < interior_end_row; j += (n + 2)) {
+                    E_tmp = E + j;
+                    E_prev_tmp = E_prev + j;
+                    R_tmp = R + j;
+                    for (int i = 2; i < n; i++) {
+                        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                    }
+                }
+        #endif
+    }
+
+    MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
+
+    // compute boundary cells
+    for(int niter = 0; i < cb.niters; niter++) {
+        #define FUSED 1
+
+        #ifdef FUSED
+                // Solve for the excitation, a PDE
+
+                // first row
+                int row_offset = 1 + (n + 2);
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // last row
+                row_offset = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // first col
+                row_offset = 1 + (n + 2);
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                int end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + 1) - row_offset;
+
+                for (int i = 0; i <= end_index; i += (n + 2)) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // last col
+                row_offset = n + (n + 2);
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n) - row_offset;
+
+                for (int i = 1; i <= end_index; i += (n + 2)) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+        #else
+                // Solve for the excitation, a PDE
+                // first row
+                row_offset = 1 + (n + 2);
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                }
+
+                /*
+                * Solve the ODE, advancing excitation and recovery variables
+                *     to the next timtestep
+                */
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // last row
+                row_offset = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                }
+
+                /*
+                * Solve the ODE, advancing excitation and recovery variables
+                *     to the next timtestep
+                */
+
+                for (int i = 1; i <= n; i++) {
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // first col
+                row_offset = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                int end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + 1) - row_offset;
+
+                for (int i = 1; i <= end_index; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                }
+
+                /*
+                * Solve the ODE, advancing excitation and recovery variables
+                *     to the next timtestep
+                */
+
+                for (int i = 1; i <= end_index; i++) {
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+
+                // last col
+                row_offset = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
+                E_tmp = E + row_offset;
+                E_prev_tmp = E_prev + row_offset;
+                R_tmp = R + row_offset;
+
+                end_index = ((n + 2) * (m + 2) - 2 * (n + 2) + n) - row_offset;
+
+                for (int i = 1; i <= end_index; i++) {
+                    E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+                }
+
+                /*
+                * Solve the ODE, advancing excitation and recovery variables
+                *     to the next timtestep
+                */
+
+                for (int i = 1; i <= end_index; i++) {
+                    E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+                    R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+                }
+        #endif
+    }
 }
 
 inline void scatterInitialCondition(
