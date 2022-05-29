@@ -46,9 +46,9 @@ get_email() {
 get_nodes() {
     px=$1
     py=$2
-    nprocs=$((px*py))
-    nnodes=$((nprocs/128))
-    if (( $nnodes % 128 == 0 ))
+    nprocs=$(($px*$py))
+    nnodes=$(($nprocs/128))
+    if (( $nnodes % 128 != 0 ))
     then
         nnodes=$(( $nnodes + 1 ))
     fi
@@ -93,7 +93,16 @@ convert_seconds() {
     echo "$hours:$minutes:$seconds"
 }
 
-n=$(get_n $N)
+get_n_tasks() {
+    px=$1
+    py=$2
+    nprocs=$(($px*$py))
+    nnodes=$(get_nodes $px $py)
+    ntasks=$(($nprocs/$nnodes))
+    echo $ntasks
+}
+
+n=$(get_n $N) # matrix size
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
@@ -101,6 +110,7 @@ partition_type=$(get_partition_type)
 new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
 outputfile="%j.out"
 jobtime=$(convert_seconds $t)
+n_tasks_per_node=$(get_n_tasks $px $py)
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
@@ -110,5 +120,6 @@ sed -i '' "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_
 sed -i '' "s/^srun.*/$newcommand/g" $target_slurm_file
 sed -i '' "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 sed -i '' "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
+sed -i '' "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
 
 sbatch $target_slurm_file
