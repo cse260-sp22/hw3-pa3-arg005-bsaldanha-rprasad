@@ -393,11 +393,11 @@ inline void gatherFinalValues(
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
 
-	double* finE = alloc(cb.m, cb.n);
-	double* finR = alloc(cb.m, cb.n);
+	double* finE = alloc1D(cb.m, cb.n);
+	double* finR = alloc1D(cb.m, cb.n);
 
-	double* finE_unpacked = alloc(cb.m, cb.n);
-	double* finR_unpacked = alloc(cb.m, cb.n);
+	double* finE_unpacked = alloc1D(cb.m, cb.n);
+	double* finR_unpacked = alloc1D(cb.m, cb.n);
 
     // printMat2("E",E,cb.m, cb.n);
     // printMat2("R",R,cb.m, cb.n);
@@ -432,8 +432,8 @@ inline void gatherFinalValues(
     // double* recvE = new double[receiveCount];
     // double* recvR = new double[receiveCount];
 
-	MPI_Gatherv(r_tempE, sendcounts, MPI_DOUBLE, finE, receiveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Gatherv(r_tempR, sendcounts, MPI_DOUBLE, finR, receiveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempE, receiveCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempR, receiveCount, MPI_DOUBLE, finR, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	unpackForPlotting(finE, finE_unpacked, nprocs);
 	unpackForPlotting(finR, finR_unpacked, nprocs);
@@ -474,7 +474,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank) {
 	}
 	else if (row == (cb.m-1)){
 		// Fills in the BOTTOM Ghost Cells
-		for (i = ((m + 2)*(n + 2) - (n + 2) + 1); i < (m + 2)(n + 2) - 1; i++){
+		for (i = ((m + 2)*(n + 2) - (n + 2) + 1); i < (m + 2)*(n + 2) - 1; i++){
 			E_prev[i] = E_prev[i - (n + 2)*2];
 		}
 	}
