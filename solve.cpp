@@ -178,6 +178,7 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
     // vector to send left and right boundaries
     MPI_Datatype column_datatype;
     MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &column_datatype);
+    MPI_Type_commit(&column_datatype);
 
     MPI_Request send_request, recv_request;
 
@@ -204,10 +205,10 @@ void communicateGhostCells(const int m, const int n, double *data, const int my_
     int row = my_rank / cb.px;
     int col = my_rank % cb.px;
 
-    bool communicateLeft = col == 0;
-    bool communicateRight = col == cb.px - 1;
-    bool communicateUp = row == 0;
-    bool communicateDown = row == cb.py - 1;
+    bool communicateLeft = col != 0;
+    bool communicateRight = col != cb.px - 1;
+    bool communicateUp = row != 0;
+    bool communicateDown = row != cb.py - 1;
 
     if (communicateLeft) {
         sendReceive(m, n, LEFT, data, my_rank, requests);
