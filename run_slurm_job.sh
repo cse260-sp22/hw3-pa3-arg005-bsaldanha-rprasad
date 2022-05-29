@@ -18,10 +18,20 @@ px=${px:-1}
 py=${py:-16}
 i=${i:-10000}
 shared=${shared:-0}
+expanse=${expanse:-1}
+
+if [ "$expanse" -eq "0" ]; then
+    target_slurm_file="$(pwd)/sorken.slurm"
+else
+    target_slurm_file="$(pwd)/expanse.slurm"
+fi
 
 get email() {
     user=$(echo $USER)
-    if [ $user -eq "bran451" ]; then
+    if [ "$expanse" -eq "0" ]; then
+        # sorken
+        echo "$(user)@ucsd.edu"
+    elif [ $user -eq "bran451" ]; then
         echo "bsaldanha@ucsd.edu"
     elif [ $user -eq "raghavprasad" ]; then
         echo "rprasad@ucsd.edu"
@@ -61,7 +71,6 @@ get_partition_type() {
     fi
 }
 
-target_slurm_file="$(pwd)/expanse.slurm"
 n=$(get_n $N)
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
