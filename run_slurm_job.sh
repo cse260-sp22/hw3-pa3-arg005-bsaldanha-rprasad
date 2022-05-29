@@ -51,7 +51,7 @@ get_nodes() {
     py=$2
     nprocs=$(($px*$py))
     nnodes=$(($nprocs/128))
-    if (( $nnodes % 128 != 0 ))
+    if (( $nprocs % 128 != 0 ))
     then
         nnodes=$(( $nnodes + 1 ))
     fi
@@ -122,16 +122,16 @@ fi
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
-sed -i '' "s/^#SBATCH --partition=.*/#SBATCH --partition=$partition_type/g" $target_slurm_file
-sed -i '' "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
-sed -i '' "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
-sed -i '' "s/^srun.*/$newcommand/g" $target_slurm_file
-sed -i '' "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
-sed -i '' "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
-sed -i '' "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
+sed -i -e "s/^#SBATCH --partition=.*/#SBATCH --partition=$partition_type/g" $target_slurm_file
+sed -i -e "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
+sed -i -e "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
+sed -i -e "s/^srun.*/$newcommand/g" $target_slurm_file
+sed -i -e "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
+sed -i -e "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
+sed -i -e "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
 
 if [ "$profile" -eq "0" ]; then
-    sed -i '' "s/.*load tau.*//g" $target_slurm_file
+    sed -i -e "s/.*load tau.*//g" $target_slurm_file
 else
     echo -n "module load tau" >> $target_slurm_file
 fi
