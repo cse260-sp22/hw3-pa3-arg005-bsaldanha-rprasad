@@ -114,9 +114,9 @@ outputfile="apf.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.%j.%N.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 
-new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
+new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $n -x $px -y $py"
 if [ "$profile" -eq "1" ]; then
-    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io ./apf -n $n -i $n -x $px -y $py"
+    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $n -x $px -y $py"
 fi
 
 
@@ -125,10 +125,10 @@ echo "Running for nprocs = $nprocs, px = $px, py = $py"
 sed -i -e "s/^#SBATCH --partition=.*/#SBATCH --partition=$partition_type/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
 sed -i -e "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
-sed -i -e "s/^srun.*/$newcommand/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 sed -i -e "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
+sed -i -e "s/^srun --mpi.*$/$new_command/g" $target_slurm_file
 
 if [ "$profile" -eq "0" ]; then
     sed -i -e "s/.*load tau.*//g" $target_slurm_file
