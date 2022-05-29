@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1
+# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30
 # N is 0 means N0: (n = 800)
 
 while [ $# -gt 0 ]; do
@@ -19,6 +19,7 @@ py=${py:-16}
 i=${i:-10000}
 shared=${shared:-0}
 expanse=${expanse:-1}
+t=${t:-60} # time in seconds
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
@@ -78,6 +79,20 @@ get_partition_type() {
     fi
 }
 
+pad() {
+    echo $1 | awk '{printf "%02d\n", $0;}'
+}
+
+convert_seconds() {
+    totaltime=$1
+    seconds=$((totaltime%60))
+    minutes=$((totaltime/60))
+    hours=$((minutes/60))
+    seconds=$(pad $seconds)
+    minutes=$(pad $minutes)
+    echo "$hours:$minutes:$seconds"
+}
+
 n=$(get_n $N)
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
@@ -85,6 +100,7 @@ email=$(get_email)
 partition_type=$(get_partition_type)
 new_command="srun --mpi=pmi2 -n $nprocs ./apf -n $n -i $n -x $px -y $py"
 outputfile="%j.out"
+jobtime=$(convert_seconds $t)
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
@@ -93,5 +109,6 @@ sed -i '' "s/^#SBATCH --nodes=.*/#SBATCH --nodes=$nodes/g" $target_slurm_file
 sed -i '' "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_file
 sed -i '' "s/^srun.*/$newcommand/g" $target_slurm_file
 sed -i '' "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
+sed -i '' "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
 
 sbatch $target_slurm_file
