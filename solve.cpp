@@ -31,7 +31,7 @@ void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m,int n);
 
-enum Direction { left = 0, right = 1, up = 2, down = 3 };
+enum Direction { LEFT = 0, RIGHT = 1, UP = 2, DOWN = 3 };
 
 extern control_block cb;
 
@@ -153,22 +153,22 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
     int send_index, receive_index, otherProcessRank;
 
     switch(direction) {
-        case Direction.left:
+        case LEFT:
             send_index = 1 + (n + 2);
             receive_index = (n + 2);
             otherProcessRank = myrank - 1;
             break;
-        case Direction.right:
+        case RIGHT:
             send_index = n + (n + 2);
             receive_index = n + 1 + (n + 2);
             otherProcessRank = myrank + 1;
             break;
-        case Direction.up:
+        case UP:
             send_index = 1 + (n + 2);
             receive_index = 1;
             otherProcessRank = myrank - cb.px;
             break;
-        case Direction.down:
+        case DOWN:
             send_index = (n + 2) * (m + 2) - 2 * (n + 2) + 1;
             receive_index = (n + 2) * (m + 2) - (n + 2) + 1;
             otherProcessRank = myrank + cb.px;
@@ -183,7 +183,7 @@ inline void sendReceive(const int m, const int n, Direction direction, double *d
 
     MPI_Request send_request, recv_request;
 
-    if (direction == Direction.left || direction == Direction.right) {
+    if (direction == LEFT || direction == RIGHT) {
         // send left and right boundaries
         MPI_Isend(data + send_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &send_request);
         MPI_Irecv(data + receive_index, 1, left_right_boundary_col, otherProcessRank, direction, MPI_COMM_WORLD, &recv_request);
@@ -212,19 +212,19 @@ void communicateGhostCells(const int m, const int n, double *data, const int my_
     bool communicateDown = row == cb.py - 1;
 
     if (communicateLeft) {
-        sendReceive(m, n, Direction.left, data, my_rank, requests);
+        sendReceive(m, n, LEFT, data, my_rank, requests);
     }
 
     if (communicateRight) {
-        sendReceive(m, n, Direction.right, data, my_rank, requests);
+        sendReceive(m, n, RIGHT, data, my_rank, requests);
     }
 
     if (communicateUp) {
-        sendReceive(m, n, Direction.up, data, my_rank, requests);
+        sendReceive(m, n, UP, data, my_rank, requests);
     }
 
     if (communicateDown) {
-        sendReceive(m, n, Direction.down, data, my_rank, requests);
+        sendReceive(m, n, DOWN, data, my_rank, requests);
     }
 }
 
