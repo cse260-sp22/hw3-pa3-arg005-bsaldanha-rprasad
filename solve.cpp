@@ -115,6 +115,49 @@ void repackForScattering(double *data, double *packed, const int nprocs) {
     // printArray(packed, cb.m * cb.n);
 }
 
+void repackForGathering(double *data, double *packed, const int nprocs, const int myrank) {
+    int m, n, rowOffset, colOffset, idx = 0, row, col;
+
+	setCurrentProcessorDim(m, n, myrank, nprocs);
+	// copy row by row (for m columns)
+	for (int i = 0; i < m; ++i) {
+		row =  1 + i;
+		col = 1;
+		// cout << "row = " << row << " col = " << col << endl;
+		// cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
+		memcpy(packed + idx, data + row * (n + 2) + col, n * sizeof(double));
+		idx += n;
+		// cout << "packed array: from " << idx * n << ": ";
+		// printArray(packed + idx, n);
+	}
+    // cout << "[------] final packed array: ";
+    // printArray(packed, cb.m * cb.n);
+}
+
+void unpackForPlotting(double *data, double *unpacked, const int nprocs) {
+	int m, n, rowOffset, colOffset, idx = 0, row, col;
+
+    for (int rank = 0; rank < nprocs; ++rank) {
+        // for each rank, identify where to start unpacking data!
+        // gets m and n for `rank`
+        setCurrentProcessorDim(m, n, rank, nprocs);
+        // gets row and column offsets for `rank`
+        rowOffset = dimensionOffset(cb.m, cb.py, rank / cb.px);
+        colOffset = dimensionOffset(cb.n, cb.px, rank % cb.px);
+        // copy row by row (for m columns)
+        for (int i = 0; i < m; ++i) {
+            row = rowOffset + i;
+            col = colOffset;
+            // cout << "row = " << row << " col = " << col << endl;
+            // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
+            memcpy(unpacked + row * cb.n + col, data + idx, n * sizeof(double));
+            idx += n;
+            // cout << "packed array: from " << idx * n << ": ";
+            // printArray(packed + idx, n);
+        }
+    }
+}
+
 void inline sendReceiveLeft(const int m, const int n, double *E_prev, double *left_right_send_buf, double *left_right_recv_buf) {
     int left_start_index = 1 + (n + 2);
     for (int i = 0; i < m; i++) {
@@ -305,11 +348,11 @@ inline void scatterInitialCondition(
 
     // double* recvE = new double[receiveCount];
     // double* recvR = new double[receiveCount];
-    double* tempE = alloc1D(m, n);
-    double* tempR = alloc1D(m, n);
+    double* s_tempE = alloc1D(m, n);
+    double* s_tempR = alloc1D(m, n);
 
-    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // free(sendE);
     // free(sendR);
@@ -330,8 +373,8 @@ inline void scatterInitialCondition(
     // }
 
     for (int j = 0; j < m; ++j) {
-        memcpy(recvE + (n + 2) * (j + 1) + 1, tempE + j * n, n * sizeof(double));
-        memcpy(recvR + (n + 2) * (j + 1) + 1, tempR + j * n, n * sizeof(double));
+        memcpy(recvE + (n + 2) * (j + 1) + 1, s_tempE + j * n, n * sizeof(double));
+        memcpy(recvR + (n + 2) * (j + 1) + 1, s_tempR + j * n, n * sizeof(double));
     }
 
     // cout << "my R: " << "my rank = " << myrank << ": ";
@@ -345,71 +388,65 @@ inline void gatherFinalValues(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
     double *recvE, double *recvR
 ) {
-    const int receiveCount = m * n;
+    const int receiveCount = cb.m * cb.n;
 
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
 
-    double* sendE = alloc1D(cb.m, cb.n);
-    double* sendR = alloc1D(cb.m, cb.n);
+	double* finE = alloc(cb.m, cb.n);
+	double* finR = alloc(cb.m, cb.n);
+
+	double* finE_unpacked = alloc(cb.m, cb.n);
+	double* finR_unpacked = alloc(cb.m, cb.n);
 
     // printMat2("E",E,cb.m, cb.n);
     // printMat2("R",R,cb.m, cb.n);
-
-    repackForScattering(E, sendE, nprocs);
-    repackForScattering(R, sendR, nprocs);
+	
+    double* r_tempE = alloc1D(m, n);
+    double* r_tempR = alloc1D(m, n);
+    
+	repackForGathering(recvE, r_tempE, nprocs, myrank);
+    repackForGathering(recvR, r_tempR, nprocs, myrank);
 
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
 
-    if (myrank == 0 && cb.debug) {
-        cout << "sendcounts: ";
-        printArrayInt(sendcounts, nprocs);
-        cout << "\n";
+    //if (myrank == 0 && cb.debug) {
+    //    cout << "sendcounts: ";
+    //    printArrayInt(sendcounts, nprocs);
+    //    cout << "\n";
 
-        cout << "senddispls: ";
-        printArrayInt(senddispls, nprocs);
-        cout << "\n";
+    //    cout << "senddispls: ";
+    //    printArrayInt(senddispls, nprocs);
+    //    cout << "\n";
 
-        cout << "sendE: ";
-        printArray(sendE, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
+    //    cout << "sendE: ";
+    //    printArray(sendE, (cb.m + 2) * (cb.n + 2));
+    //    cout << "\n";
 
-        cout << "sendR: ";
-        printArray(sendR, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
-    }
+    //    cout << "sendR: ";
+    //    printArray(sendR, (cb.m + 2) * (cb.n + 2));
+    //    cout << "\n";
+    //}
 
     // double* recvE = new double[receiveCount];
     // double* recvR = new double[receiveCount];
-    double* tempE = alloc1D(m, n);
-    double* tempR = alloc1D(m, n);
 
-    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempE, sendcounts, MPI_DOUBLE, finE, recieveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gatherv(r_tempR, sendcounts, MPI_DOUBLE, finR, recieveCount, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+	unpackForPlotting(finE, finE_unpacked, nprocs);
+	unpackForPlotting(finR, finR_unpacked, nprocs);
 
     // free(sendE);
     // free(sendR);
     // free(sendcounts);
     // free(senddispls);
-    
-    // pad recvE and recvR
-    // memset(recvE + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
-    // memset(recvR + m * n, 0, ((m + 2) * (n + 2) - m * n) * sizeof(double));
-    // memset(recvE)
-
-    memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
-    memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
     // for (int j = (m - 1) * n; j >= 0; j -= n) {
     //     memcpy(recvE + (n + 2) * j + 1, recvE + j, n * sizeof(double));
     //     memcpy(recvR + (n + 2) * j + 1, recvR + j, n * sizeof(double));
     // }
-
-    for (int j = 0; j < m; ++j) {
-        memcpy(recvE + (n + 2) * (j + 1) + 1, tempE + j * n, n * sizeof(double));
-        memcpy(recvR + (n + 2) * (j + 1) + 1, tempR + j * n, n * sizeof(double));
-    }
 
     // cout << "my R: " << "my rank = " << myrank << ": ";
     // printArray(recvR, (m + 2) * (n + 2));
