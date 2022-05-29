@@ -147,9 +147,9 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs) {
     }
 }
 
-inline vector<MPI_Request> sendReceive(const int m, const int n, int direction, double *E_prev) {
+inline vector<MPI_Request> sendReceive(const int m, const int n, int direction, double *E_prev, const int myrank) {
     int start_index = 1 + (n + 2);
-    int end_index_offset = -1
+    int end_index_offset = -1;
     int adder = -1;
 
     if(direction == 1) {
@@ -171,8 +171,8 @@ inline vector<MPI_Request> sendReceive(const int m, const int n, int direction, 
     MPI_Type_vector(m, 1, (n + 2), MPI_DOUBLE, &left_right_boundary_col);
 
     MPI_Request send_request, recv_request;
-    MPI_Isend(E_prev[start_index], 1, left_right_boundary_col, my_rank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
-    MPI_Irecv(E_prev[start_index + end_index_offset], 1, left_right_boundary_col, my_rank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
+    MPI_Isend(E_prev[start_index], 1, left_right_boundary_col, myrank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
+    MPI_Irecv(E_prev[start_index + end_index_offset], 1, left_right_boundary_col, myrank + adder, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
 
     vector<MPI_Request> requests;
     requests.push_back(send_request);
@@ -211,37 +211,37 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
 
         if (leftUpper) {
             // send/receive m elements to/from the processor to the right and
-            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (rightUpper) {
             // send/receive m elements to/from the processor to the left and
-            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (rightLower) {
             // send/receive m elements to/from the processor to the left and
-            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor above
-            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (leftLower) {
             // send/receive m elements to/from the processor to the right and
-            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor above
-            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
     }
@@ -252,24 +252,24 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
     else if(topBoundary || leftBoundary || rightBoundary || bottomBoundary) {
         if (topBoundary) {
             // send/receive m elements to/from the processors to the left and right
-            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
-            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processor below
-            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
         if (leftBoundary) {
             // send/receive m elements to/from the processor to the right
-            requests_tmp = sendReceive(m, n, 1, E_prev);
+            requests_tmp = sendReceive(m, n, 1, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processors above and below
-            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
 
@@ -286,13 +286,13 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
 
         if (rightBoundary) {
             // send/receive m elements to/from the processor to the left
-            requests_tmp = sendReceive(m, n, 0, E_prev);
+            requests_tmp = sendReceive(m, n, 0, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
             // send/receive n elements to/from the processors above and below
-            requests_tmp = sendReceive(m, n, 3, E_prev);
+            requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-            requests_tmp = sendReceive(m, n, 2, E_prev);
+            requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
             requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
         }
     }
@@ -307,10 +307,10 @@ void communicateGhostCells(const int m, const int n, double *E_prev, const int m
         requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
 
-        requests_tmp = sendReceive(m, n, 3, E_prev);
+        requests_tmp = sendReceive(m, n, 3, E_prev, my_rank);
         requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
 
-        requests_tmp = sendReceive(m, n, 2, E_prev);
+        requests_tmp = sendReceive(m, n, 2, E_prev, my_rank);
         requests.insert(requests.end(), requests_tmp.begin(), requests_tmp.end());
     }
 
