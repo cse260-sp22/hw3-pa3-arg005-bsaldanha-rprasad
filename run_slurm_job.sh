@@ -26,16 +26,16 @@ else
     target_slurm_file="$(pwd)/expanse.slurm"
 fi
 
-get email() {
+get_email() {
     user=$(echo $USER)
     if [ "$expanse" -eq "0" ]; then
         # sorken
         echo "$(user)@ucsd.edu"
-    elif [ $user -eq "bran451" ]; then
+    elif [ $user == "bran451" ]; then
         echo "bsaldanha@ucsd.edu"
-    elif [ $user -eq "raghavprasad" ]; then
+    elif [ $user == "raghavprasad" ]; then
         echo "rprasad@ucsd.edu"
-    elif [ $user -eq "fermi" ]; then
+    elif [ $user == "fermi" ]; then
         echo "arg005@ucsd.edu"
     else
         echo "arg005@ucsd.edu"
@@ -86,6 +86,6 @@ echo "Running for nprocs = $nprocs, px = $px, py = $py"
 sed -i -e "s/^#SBATCH --partition=.*/SBATCH --partition=$partition_type/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --nodes=.*/SBATCH --nodes=$nodes/g" $target_slurm_file
 sed -i -e "s/#SBATCH --mail-user=.*/SBATCH --mail-user=$email/g" $target_slurm_file
-sed -i -e "s/^srun.*/$newcommand$" $target_slurm_file
+sed -i -e "s/^srun.*/$newcommand/g" $target_slurm_file
 
 sbatch $target_slurm_file
