@@ -109,7 +109,7 @@ nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
 partition_type=$(get_partition_type)
-outputfile="apf.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.%j.%N.out"
+outputfile="apf.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.%N.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 
@@ -136,4 +136,3 @@ else
 fi
 
 sbatch $target_slurm_file
-echo "cat $outputfile"
