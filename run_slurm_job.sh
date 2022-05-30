@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --t 30 --expanse 1
+# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --t 30
 # N is 0 means N0: (n = 800)
 
 while [ $# -gt 0 ]; do
@@ -121,10 +121,10 @@ n=$(get_n $N) # matrix size
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
-partition_type=$(get_partition_type)
 outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
+partition_type=$(get_partition_type $n_tasks_per_node)
 
 new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
 if [ "$profile" -eq "1" ]; then
