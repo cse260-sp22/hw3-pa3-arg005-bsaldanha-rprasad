@@ -83,11 +83,11 @@ get_n() {
 }
 
 get_partition_type() {
-    n_tasks_per_node=$1
+    nprocs=$1
     if [ "$expanse" -eq "0" ]; then
         # if sorken, return CLUSTER
         echo "CLUSTER"
-    elif [ "$n_tasks_per_node" == "128" ]; then
+    elif [ "$nprocs" -ge "128" ]; then
         echo "compute"
     else
         echo "shared"
@@ -124,7 +124,7 @@ email=$(get_email)
 outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
-partition_type=$(get_partition_type $n_tasks_per_node)
+partition_type=$(get_partition_type $nprocs)
 
 new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
 if [ "$profile" -eq "1" ]; then
