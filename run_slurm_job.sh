@@ -17,11 +17,14 @@ N=${N:-0}
 px=${px:-1}
 py=${py:-16}
 i=${i:-8000}
-expanse=${expanse:-1}
+# expanse=${expanse:-1}
 t=${t:-60} # time in seconds
 profile=${profile:-0}
 k=${k:-0}
 results_folder=${results_folder:-0}
+
+is_sorken=$(shell hostname | grep sorken | wc -c)
+expanse=!$is_sorken
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
