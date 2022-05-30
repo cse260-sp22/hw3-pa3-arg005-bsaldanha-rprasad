@@ -33,7 +33,7 @@ get_email() {
     user=$(echo $USER)
     if [ "$expanse" -eq "0" ]; then
         # sorken
-        echo "$(user)@ucsd.edu"
+        echo "$user@ucsd.edu"
     elif [ $user == "bran451" ]; then
         echo "bsaldanha@ucsd.edu"
     elif [ $user == "raghavprasad" ]; then
