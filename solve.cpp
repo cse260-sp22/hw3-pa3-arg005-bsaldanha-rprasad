@@ -775,7 +775,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
 
-	printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
+	if (cb.debug) printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
 
 //TODO: l2norm and linf reduce -> send to processor 0
 
