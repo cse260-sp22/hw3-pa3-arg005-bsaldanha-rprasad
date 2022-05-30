@@ -29,7 +29,7 @@ else
     target_slurm_file="$(pwd)/expanse.slurm"
 fi
 
-results_folder=$(echo $(date +"%Y-%m-%dT%H:%M:%S%z"))
+results_folder=$(echo $(date +"%Y-%m-%dT%H:%M%z"))
 mkdir $results_folder
 
 get_email() {
