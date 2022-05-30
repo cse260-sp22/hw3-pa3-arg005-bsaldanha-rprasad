@@ -21,6 +21,7 @@ shared=${shared:-0}
 expanse=${expanse:-1}
 t=${t:-60} # time in seconds
 profile=${profile:-0}
+k=${k:-0}
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
@@ -123,6 +124,9 @@ if [ "$profile" -eq "1" ]; then
     new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $i -x $px -y $py"
 fi
 
+if [ "$k" -eq "1" ]; then
+    new_command="$new_command -k"
+fi
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
 
