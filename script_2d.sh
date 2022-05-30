@@ -1,0 +1,33 @@
+bash ./run_slurm_job.sh --N 2 --px 1 --py 128 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 2 --py 64 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 4 --py 32 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 8 --py 16 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 16 --py 8 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 32 --py 4 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 64 --py 2 --t 30 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 128 --py 1 --t 30 --results_folder results_2d
+
+bash ./run_slurm_job.sh --N 2 --px 1 --py 256 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 2 --py 128 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 4 --py 64 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 8 --py 32 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 16 --py 16 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 32 --py 8 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 64 --py 4 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 128 --py 2 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 256 --py 1 --t 60 --results_folder results_2d
+
+bash ./run_slurm_job.sh --N 2 --px 1 --py 192 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 2 --py 96 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 3 --py 64 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 4 --py 48 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 6 --py 32 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 8 --py 24 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 12 --py 16 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 16 --py 12 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 24 --py 8 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 32 --py 6 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 48 --py 4 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 64 --py 3 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 96 --py 2 --t 60 --results_folder results_2d
+bash ./run_slurm_job.sh --N 2 --px 192 --py 1 --t 60 --results_folder results_2d
