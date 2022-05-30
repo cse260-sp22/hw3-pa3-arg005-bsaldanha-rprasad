@@ -715,18 +715,6 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     // the desired number of iterations
     for (niter = 0; niter < cb.niters; niter++)
     {
-		if (cb.debug && myrank == 0)
-		{
-			cout << "[rank " << myrank << "]";
-            cout << "At iteration " << niter << endl;
-			cout << "[rank " << myrank << "]";
-            printMat2("E_prev", E_prev, m, n);
-			cout << "[rank " << myrank << "]";
-            printMat2("E", E_prev, m, n);
-			cout << "[rank " << myrank << "]";
-            cout << "At iteration " << niter << endl;
-		}
-
         if (cb.debug && (niter == 0))
         {
             stats(E_prev, m, n, &mx, &sumSq);
@@ -775,7 +763,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
 
-	if (cb.debug) printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
+	// if (cb.debug) printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
 
 //TODO: l2norm and linf reduce -> send to processor 0
 
@@ -825,14 +813,6 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
     // the desired number of iterations
     for (niter = 0; niter < cb.niters; niter++)
     {
-        if (cb.debug)
-        {
-            cout << "At iteration " << niter << endl;
-            printMat2("E_prev", E_prev, m, n);
-            printMat2("E", E_prev, m, n);
-            cout << "At iteration " << niter << endl;
-        }
-
         if (cb.debug && (niter == 0))
         {
             stats(E_prev, m, n, &mx, &sumSq);
