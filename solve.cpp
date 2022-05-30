@@ -425,9 +425,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyODEPDE(E, E_prev, R, i, m, n, dt, alpha);
-        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] = E_prev[i] + alpha * (E_prev[i + 1] + E_prev[i - 1] - 4 * E_prev[i] + E_prev[i + (n + 2)] + E_prev[i - (n + 2)]);
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
     // last col
@@ -437,9 +437,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyODEPDE(E, E_prev, R, i, m, n, dt, alpha);
-        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] = E_prev[i] + alpha * (E_prev[i + 1] + E_prev[i - 1] - 4 * E_prev[i] + E_prev[i + (n + 2)] + E_prev[i - (n + 2)]);
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
 #else
@@ -464,8 +464,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	for (int i = 0; i < n; i++)
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
     // last row
@@ -488,8 +488,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	for (int i = 0; i < n; i++)
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
     // first col
@@ -499,7 +499,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyODE(E, E_prev, R, i, m, n, alpha);
-        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+        E[i] = E_prev[i] + alpha * (E_prev[i + 1] + E_prev[i - 1] - 4 * E_prev[i] + E_prev[i + (n + 2)] + E_prev[i - (n + 2)]);
     }
 
     /*
@@ -510,8 +510,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
     // last col
@@ -521,14 +521,14 @@ inline void compute(const int m, const int n, const double dt, const double alph
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyODE(E, E_prev, R, i, m, n, alpha);
-        E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+        E[i] = E_prev[i] + alpha * (E_prev[i + 1] + E_prev[i - 1] - 4 * E_prev[i] + E_prev[i + (n + 2)] + E_prev[i - (n + 2)]);
     }
 
     for (int i = start_index; i <= end_index; i += (n + 2))
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
+        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 #endif
 }
