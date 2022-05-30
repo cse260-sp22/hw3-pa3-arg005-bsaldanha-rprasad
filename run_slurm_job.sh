@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30 --profile 0
+# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30 --profile 0 --expanse 1
 # N is 0 means N0: (n = 800)
 
 while [ $# -gt 0 ]; do
@@ -48,9 +48,14 @@ get_email() {
 get_nodes() {
     px=$1
     py=$2
+    cores_per_node=128
+    if [ "$expanse" -eq "0" ]; then
+        cores_per_node=12
+    fi
+
     nprocs=$(($px*$py))
-    nnodes=$(($nprocs/128))
-    if (( $nprocs % 128 != 0 ))
+    nnodes=$(($nprocs/$cores_per_node))
+    if (( $nprocs % $cores_per_node != 0 ))
     then
         nnodes=$(( $nnodes + 1 ))
     fi
