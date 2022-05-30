@@ -301,7 +301,7 @@ inline void applyODEPDE(double *E_tmp, double *E_prev_tmp, double *R_tmp, const 
     applyPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt);
 }
 
-inline void compute(const int m, const int n, const double dt, const double alpha, double *E, double *E_tmp, double *E_prev, double *E_prev_tmp, double *R, double *R_tmp, const int my_rank)
+inline void compute(const int m, const int n, const double dt, const double alpha, double* __restrict__ E, double *E_tmp, double*  __restrict__ E_prev, double *E_prev_tmp, double* __restrict__ R, double *R_tmp, const int my_rank)
 {
     vector<MPI_Request> requests;
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests);
@@ -317,12 +317,12 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-        for (int i = 0; i < n - 2; i++)
+        for (int i = 0; i < n-2; i++)
         {
-            applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
-            // E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-            // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-            // R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+            // applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
+            E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+            E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+            R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
         }
     }
 #else
@@ -333,8 +333,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E_prev_tmp = E_prev + j;
         for (int i = 0; i < n - 2; i++)
         {
-            applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
-            // E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+            // applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
+            E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
         }
     }
 
@@ -350,9 +350,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
         R_tmp = R + j;
 		for (int i = 0; i < n - 2; i++)
         {
-            applyPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt);
-            // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-            // R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+            // applyPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt);
+            E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+            R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
         }
     }
 #endif
