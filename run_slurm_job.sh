@@ -109,7 +109,7 @@ nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
 partition_type=$(get_partition_type)
-outputfile="apf.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.%N.out"
+outputfile="apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 
