@@ -309,7 +309,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
 
     // this computes interior
-    const int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
+    const int interior_start_row = 2 + 2 * (n + 2);
     const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
 
@@ -335,6 +335,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
             E_tmp[i] = E_prev_tmp[i] + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE);
             E_tmp[i] += -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
             R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
+			// E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+             // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+             // R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
         }
     }
 #else
@@ -726,23 +729,21 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     //     cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     // }
 
-    double *recvEprev = *_E_prev;
-    double *recvR = _R;
-    double *recvE = *_E;
+    // double *recvEprev = *_E_prev;
+    // double *recvR = _R;
     // memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
-    scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, recvEprev, recvR);
+    scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
-    double *E = recvE;
-    double *R = recvR;
-    double *R_tmp = R;
+    double *E = *_E;
+    double *R = _R;
+    double *R_tmp = _R;
     double *E_tmp = E;
-    double *E_prev_tmp = recvEprev;
-    E_prev = recvEprev;
+    double *E_prev_tmp = E_prev;
 
     double mx, sumSq;
     int niter, i, j;
