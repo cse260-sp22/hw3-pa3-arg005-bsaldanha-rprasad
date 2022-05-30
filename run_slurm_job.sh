@@ -50,7 +50,7 @@ get_nodes() {
     py=$2
     cores_per_node=128
     if [ "$expanse" -eq "0" ]; then
-        cores_per_node=12
+        cores_per_node=32
     fi
 
     nprocs=$(($px*$py))
