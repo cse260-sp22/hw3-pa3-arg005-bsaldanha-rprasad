@@ -23,7 +23,7 @@ profile=${profile:-0}
 k=${k:-0}
 results_folder=${results_folder:-0}
 
-is_sorken=$(shell hostname | grep sorken | wc -c)
+is_sorken=$(hostname | grep sorken | wc -c)
 expanse=!$is_sorken
 
 if [ "$expanse" -eq "0" ]; then
