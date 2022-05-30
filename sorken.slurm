@@ -19,6 +19,7 @@ export SLURM_EXPORT_ENV=ALL
 # module load cpu
 #Load module file(s) into the shell environment
 # module load gcc
-# module load openmpi
+# module load rocks-openmpi
 # module load slurm
-srun --mpi=pmi2 -n 1 ./apf -n 800 -i 2000
+# srun --mpi=pmi2 -n 1 ./apf -n 800 -i 2000
+mpirun -n 2 ./apf-ref -n 800 -i 2000 -x 2 -y 1

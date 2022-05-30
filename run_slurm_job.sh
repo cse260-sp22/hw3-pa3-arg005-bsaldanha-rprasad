@@ -127,9 +127,13 @@ n_tasks_per_node=$(get_n_tasks $px $py)
 partition_type=$(get_partition_type $nprocs)
 
 new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
-if [ "$profile" -eq "1" ]; then
-    new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $i -x $px -y $py"
+if [ "$expanse" -eq "0" ]; then
+    new_command="mpirun -n $nprocs ./apf-ref -n $n -i $i -x $px -y $py"
 fi
+
+# if [ "$profile" -eq "1" ]; then
+#     new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $i -x $px -y $py"
+# fi
 
 if [ "$k" -eq "1" ]; then
     new_command="$new_command -k"
