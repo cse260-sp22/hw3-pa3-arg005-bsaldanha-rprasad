@@ -29,6 +29,8 @@ else
     target_slurm_file="$(pwd)/expanse.slurm"
 fi
 
+results_folder=$(echo $(date +"%Y-%m-%dT%H:%M:%S%z"))
+mkdir $results_folder
 
 get_email() {
     user=$(echo $USER)
@@ -115,7 +117,7 @@ nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
 partition_type=$(get_partition_type)
-outputfile="apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
+outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 
