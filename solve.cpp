@@ -174,7 +174,7 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs)
     }
 }
 
-inline void sendReceive(const int m, const int n, Direction sendDirection, double *data, const int myrank, vector<MPI_Request> &requests)
+inline void sendReceive(const int m, const int n, Direction sendDirection, double *data, const int myrank, MPI_Request requests[8], int &requestNumber)
 {
     int send_index, receive_index, otherProcessRank;
     Direction receiveDirection;
@@ -240,12 +240,12 @@ inline void sendReceive(const int m, const int n, Direction sendDirection, doubl
         //     cout << "[rank " << myrank << "] receiving " << receiveDirection << " boundary from " << otherProcessRank << endl;
         MPI_Irecv(data + receive_index, n, MPI_DOUBLE, otherProcessRank, receiveDirection, MPI_COMM_WORLD, &recv_request);
     }
-
-    requests.emplace_back(send_request);
-    requests.emplace_back(recv_request);
+	
+	requests[requestNumber++] = send_request;
+	requests[requestNumber++] = recv_request;
 }
 
-void communicateGhostCells(const int m, const int n, double *data, const int my_rank, vector<MPI_Request> &requests)
+void communicateGhostCells(const int m, const int n, double *data, const int my_rank, MPI_Request requests[8], int& requestNumber)
 {
     // l = 0, r = 1, u = 2, d = 3
     // compute inner cells and populate ghost cells in parallel
@@ -263,22 +263,22 @@ void communicateGhostCells(const int m, const int n, double *data, const int my_
 
     if (communicateLeft)
     {
-        sendReceive(m, n, LEFT, data, my_rank, requests);
+        sendReceive(m, n, LEFT, data, my_rank, requests, requestNumber);
     }
 
     if (communicateRight)
     {
-        sendReceive(m, n, RIGHT, data, my_rank, requests);
+        sendReceive(m, n, RIGHT, data, my_rank, requests, requestNumber);
     }
 
     if (communicateUp)
     {
-        sendReceive(m, n, UP, data, my_rank, requests);
+        sendReceive(m, n, UP, data, my_rank, requests, requestNumber);
     }
 
     if (communicateDown)
     {
-        sendReceive(m, n, DOWN, data, my_rank, requests);
+        sendReceive(m, n, DOWN, data, my_rank, requests, requestNumber);
     }
 }
 
@@ -303,8 +303,10 @@ inline void applyODEPDE(double *E_tmp, double *E_prev_tmp, double *R_tmp, const 
 
 inline void compute(const int m, const int n, const double dt, const double alpha, double* __restrict__ E, double *E_tmp, double*  __restrict__ E_prev, double *E_prev_tmp, double* __restrict__ R, double *R_tmp, const int my_rank)
 {
-    vector<MPI_Request> requests;
-    if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests);
+    // vector<MPI_Request> requests;
+	MPI_Request requests[8];
+	int requestNumber = 0;
+    if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
@@ -358,7 +360,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #endif
 
 	// MPI_Status statuses[requests.size()];
-    if (!cb.noComm) MPI_Waitall(requests.size(), &requests[0], MPI_STATUSES_IGNORE);
+    if (!cb.noComm) MPI_Waitall(requestNumber, &requests[0], MPI_STATUSES_IGNORE);
 
 	// for (int k = 0; k < requests.size(); k++) {
 	// 	int count;
