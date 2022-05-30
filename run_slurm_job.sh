@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --i 2000 --shared 1 --t 30 --profile 0 --expanse 1
+# bash ./run_slurm_job.sh --N 0 --px 1 --py 16 --t 30 --expanse 1
 # N is 0 means N0: (n = 800)
 
 while [ $# -gt 0 ]; do
@@ -16,12 +16,12 @@ done
 N=${N:-0}
 px=${px:-1}
 py=${py:-16}
-i=${i:-10000}
-shared=${shared:-0}
+i=${i:-8000}
 expanse=${expanse:-1}
 t=${t:-60} # time in seconds
 profile=${profile:-0}
 k=${k:-0}
+results_folder=${results_folder:-0}
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
@@ -29,7 +29,11 @@ else
     target_slurm_file="$(pwd)/expanse.slurm"
 fi
 
-results_folder=$(echo $(date +"%Y-%m-%dT%H:%M%z"))
+user=$(echo $USER)
+if [ "$results_folder" == "0" ]; then
+    results_folder=$(echo results_$(date +"%Y-%m-%dT%H:%M%z")_$user)
+fi
+
 mkdir $results_folder
 
 get_email() {
@@ -79,12 +83,13 @@ get_n() {
 }
 
 get_partition_type() {
+    n_tasks_per_node=$1
     if [ "$expanse" -eq "0" ]; then
         # if sorken, return CLUSTER
         echo "CLUSTER"
-    elif [ "$shared" -eq "0" ]; then
+    elif [ "$n_tasks_per_node" == "128" ]; then
         echo "compute"
-    elif [ "$shared" -eq "1" ]; then
+    else
         echo "shared"
     fi
 }
