@@ -23,8 +23,14 @@ profile=${profile:-0}
 k=${k:-0}
 results_folder=${results_folder:-0}
 
+expanse=1
+
 is_sorken=$(hostname | grep sorken | wc -c)
-expanse=!$is_sorken
+if [ $is_sorken -gt 0 ]; then
+	expanse=0
+fi
+
+echo "expanse = $expanse"
 
 if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
@@ -131,7 +137,7 @@ partition_type=$(get_partition_type $nprocs)
 
 new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
 if [ "$expanse" -eq "0" ]; then
-    new_command="mpirun -n $nprocs ./apf-ref -n $n -i $i -x $px -y $py"
+    new_command="mpirun -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
 fi
 
 # if [ "$profile" -eq "1" ]; then
@@ -150,7 +156,12 @@ sed -i -e "s/#SBATCH --mail-user=.*/#SBATCH --mail-user=$email/g" $target_slurm_
 sed -i -e "s/^#SBATCH --output=.*/#SBATCH --output="$outputfile"/g" $target_slurm_file
 sed -i -e "s/^#SBATCH -t.*/#SBATCH -t $jobtime/g" $target_slurm_file
 sed -i -e "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_per_node/g" $target_slurm_file
-sed -i -e "s/^srun --mpi.*$/$new_command/g" $target_slurm_file
+
+if [ "$expanse" -eq "0" ]; then
+	sed -i -e "s/^mpirun.*$/$new_command/g" $target_slurm_file
+else
+	sed -i -e "s/^srun.*$/$new_command/g" $target_slurm_file
+fi
 
 if [ "$profile" -eq "0" ]; then
     sed -i -e "s/.*load tau.*//g" $target_slurm_file
