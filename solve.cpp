@@ -325,15 +325,15 @@ inline void compute(const int m, const int n, const double dt, const double alph
 			upCellE = E_prev_tmp[i - (n + 2)];
 			downCellE = E_prev_tmp[i + (n + 2)];
 			leftCellE = E_prev_tmp[i - 1];
-			rightCellE = E_prev_tmp[i + 1];
 			currentCellE = E_prev_tmp[i];
+			rightCellE = E_prev_tmp[i + 1];
 			currentCellR = R_tmp[i];
             // applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
             // E_tmp[i] = 4.5;
             // E_tmp[i] += 1.0;
             // R_tmp[i] += 3.0;
-            E_tmp[i] = E_prev_tmp[i] + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE);
-            E_tmp[i] += -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
+            // E_tmp[i] = 
+            E_tmp[i] = currentCellE + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE) -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
             R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
 			// E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
              // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
