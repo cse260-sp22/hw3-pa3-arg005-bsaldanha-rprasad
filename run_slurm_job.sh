@@ -121,7 +121,7 @@ n=$(get_n $N) # matrix size
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
-outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.out"
+outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.k=$k.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 partition_type=$(get_partition_type $nprocs)
