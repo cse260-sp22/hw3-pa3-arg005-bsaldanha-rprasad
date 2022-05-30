@@ -22,6 +22,7 @@ t=${t:-60} # time in seconds
 profile=${profile:-0}
 k=${k:-0}
 results_folder=${results_folder:-0}
+ref=${ref:-0}
 
 expanse=1
 
@@ -36,6 +37,11 @@ if [ "$expanse" -eq "0" ]; then
     target_slurm_file="$(pwd)/sorken.slurm"
 else
     target_slurm_file="$(pwd)/expanse.slurm"
+fi
+
+binaryfile=".\/apf"
+if [ "$ref" -eq "1" ]; then
+    binaryfile="\/share\/public\/cse260-sp22\/HW\/hw3\/apf-ref"
 fi
 
 user=$(echo $USER)
@@ -130,14 +136,14 @@ n=$(get_n $N) # matrix size
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
-outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.k=$k.out"
+outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.k=$k.ref=$ref.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
 partition_type=$(get_partition_type $nprocs)
 
-new_command="srun --mpi=pmi2 -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
+new_command="srun --mpi=pmi2 -n $nprocs $binaryfile -n $n -i $i -x $px -y $py"
 if [ "$expanse" -eq "0" ]; then
-    new_command="mpirun -n $nprocs .\/apf -n $n -i $i -x $px -y $py"
+    new_command="mpirun -n $nprocs $binaryfile -n $n -i $i -x $px -y $py"
 fi
 
 # if [ "$profile" -eq "1" ]; then
