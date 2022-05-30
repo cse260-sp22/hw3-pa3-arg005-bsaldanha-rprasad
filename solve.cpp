@@ -311,6 +311,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2); // 1 + 2*rows b/c in fused cell's for loop, i goes from 2 to n - 1
     const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
+	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
 
 #ifdef FUSED
     // Solve for the excitation, a PDE
@@ -319,12 +320,21 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-        for (int i = 0; i < n-2; i++)
+        for (int i = 0; i < n - 2; i++)
         {
+			upCellE = E_prev_tmp[i - (n + 2)];
+			downCellE = E_prev_tmp[i + (n + 2)];
+			leftCellE = E_prev_tmp[i - 1];
+			rightCellE = E_prev_tmp[i + 1];
+			currentCellE = E_prev_tmp[i];
+			currentCellR = R_tmp[i];
             // applyODEPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt, alpha);
-            E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-            E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-            R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+            // E_tmp[i] = 4.5;
+            // E_tmp[i] += 1.0;
+            // R_tmp[i] += 3.0;
+            E_tmp[i] = E_prev_tmp[i] + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE);
+            E_tmp[i] += -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
+            R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
         }
     }
 #else
@@ -716,10 +726,10 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     //     cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
     // }
 
-    double *recvEprev = alloc1D(m + 2, n + 2);
-    double *recvR = alloc1D(m + 2, n + 2);
-    double *recvE = alloc1D(m + 2, n + 2);
-    memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
+    double *recvEprev = *_E_prev;
+    double *recvR = _R;
+    double *recvE = *_E;
+    // memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
