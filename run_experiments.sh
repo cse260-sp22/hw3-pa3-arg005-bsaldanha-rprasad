@@ -16,10 +16,15 @@ ref=${ref:-0}
 # either give target_time or iterations
 target_time=${target_time:-10}
 iterations=${iterations:-0}
+input_file=${input_file:-0}
 
 user=$(echo $USER)
 if [ "$results_folder" == "0" ]; then
     results_folder=$(echo results_$(date +"%Y-%m-%dT%H:%M%z")_$user)
+fi
+
+if [ "$input_file" -eq "0" ]; then
+	input_file="experiment_input.csv"
 fi
 
 while IFS=',' read -ra array; do
@@ -28,15 +33,13 @@ while IFS=',' read -ra array; do
   Narray+=("${array[2]}")
   karray+=("${array[3]}")
 #   iarray+=("${array[4]}")
-done < experiment_input.csv                                                       
+done < $input_file
 
 # printf '%s\n' "${pxarray[@]}"
 
 get_iterations() {
     #gflops = 28*n^2*niters*1e9/time
-    #time = 28*n^2*niters/gflops/1e9
     #niters = time*gflops*1e9/(28*n^2)
-    #if time = 5s
     N=$1
     px=$2
     py=$3
@@ -50,7 +53,9 @@ get_iterations() {
         n=8000
     fi
 
-    estimated_gflops=$((20*$px*$py))
+	# 20gflops is estimated perf for 1 core!
+	single_core_gflops==20
+    estimated_gflops=$(($single_core_gflops*$px*$py))
     niters=$(($estimated_gflops*$target_time*1000/$n*1000/$n*1000/28/1000*1000))
     echo $niters
     # echo "Estimated gflops: $estimated_gflops"
