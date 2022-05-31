@@ -48,6 +48,8 @@ C++FLAGS += -msse -msse2
 #C++FLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2 -march=native -DSSE_VEC
 endif
 
+C++FLAGS += -mavx -march=core-avx2
+
 app:		apf
 
 OBJECTS = apf.o solve.o Plotting.o cmdLine.o Report.o utils.o helper.o Timer.o
