@@ -314,7 +314,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     double tstart = MPI_Wtime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
     tcommunicate += (MPI_Wtime() - tstart);
-    // if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
+    if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
@@ -405,7 +405,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #ifdef FUSED
     // Solve for the excitation, a PDE
 
-    tstart = MPI_Wtime();
+    // tstart = MPI_Wtime();
     // first row
     int row_offset = (n + 2) + 1;
     E_tmp = E + row_offset;
@@ -458,7 +458,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
         R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
 
-    tcompute += (MPI_Wtime() - tstart);
+    // tcompute += (MPI_Wtime() - tstart);
 
 #else
     // Solve for the excitation, a PDE
