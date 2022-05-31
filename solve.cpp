@@ -25,12 +25,6 @@
 #define MANUAL_VECTORIZATION 0
 using namespace std;
 
-#ifdef _MPI_
-double getTime()
-{
-    return MPI_Wtime();
-}
-#endif
 
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
@@ -316,9 +310,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // vector<MPI_Request> requests;
 	MPI_Request requests[8];
 	int requestNumber = 0;
-    int tstart = getTime();
+    int tstart = MPI_Wtime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
-    tcommunicate += getTime() - tstart;
+    tcommunicate += MPI_Wtime() - tstart;
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
@@ -326,7 +320,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
 
 #ifdef FUSED
-    tstart = getTime();
+    tstart = MPI_Wtime();
     // Solve for the excitation, a PDE
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
@@ -385,7 +379,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #endif
 
-    tcompute += (getTime() - tstart);
+    tcompute += (MPI_Wtime() - tstart);
 	// MPI_Status statuses[requests.size()];
     if (!cb.noComm) MPI_Waitall(requestNumber, &requests[0], MPI_STATUSES_IGNORE);
 
