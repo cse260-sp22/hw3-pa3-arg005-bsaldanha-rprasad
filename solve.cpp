@@ -38,6 +38,7 @@ static double tcommunicate = 0.0;
 static double tcompute = 0.0;
 static double ttotal = 0.0;
 static double tscatter = 0.0;
+static double tpad = 0.0;
 
 enum Direction
 {
@@ -751,9 +752,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
-    double tstart = MPI_Wtime();
+    // double tstart = MPI_Wtime();
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
-    tscatter += (MPI_Wtime() - tstart);
+    // tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
@@ -779,7 +780,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
                 plotter->updatePlot(E, -1, m + 1, n + 1);
         }
 
+        tstart = MPI_Wtime();
         padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
+        tpad += (MPI_Wtime() - tstart);
 
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
@@ -835,7 +838,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
 	//Method2: double reduce operation
     if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter" << tscatter << endl;
+        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter = " << tscatter << ", tpad = " << tpad << endl;
     }
 	double *finStats = alloc1D(1, 2);
 
