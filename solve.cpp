@@ -381,7 +381,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
 
     tcompute += (MPI_Wtime() - tstart);
 	// MPI_Status statuses[requests.size()];
+    tstart = MPI_Wtime();
     if (!cb.noComm) MPI_Waitall(requestNumber, &requests[0], MPI_STATUSES_IGNORE);
+    tcommunicate += (MPI_Wtime() - tstart);
 
 	// for (int k = 0; k < requests.size(); k++) {
 	// 	int count;
@@ -401,6 +403,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #ifdef FUSED
     // Solve for the excitation, a PDE
 
+    tstart = MPI_Wtime();
     // first row
     int row_offset = (n + 2) + 1;
     E_tmp = E + row_offset;
@@ -452,6 +455,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
         E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
         R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
     }
+
+    tcompute += (MPI_Wtime() - tstart);
 
 #else
     // Solve for the excitation, a PDE
