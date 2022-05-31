@@ -23,7 +23,7 @@
 #include <mpi.h>
 #endif
 #define FUSED 1
-#define MANUAL_VECTORIZATION 1
+#define MANUAL_VECTORIZATION 0
 using namespace std;
 
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
@@ -33,6 +33,9 @@ void printMatFull(const char mesg[], double *E, int m, int n);
 void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m, int n);
+
+double tcommunicate = 0.0;
+double tcompute = 0.0;
 
 enum Direction
 {
@@ -307,7 +310,9 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // vector<MPI_Request> requests;
 	MPI_Request requests[8];
 	int requestNumber = 0;
+    int tstart = getTime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
+    tcommunicate += getTime() - tstart;
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
@@ -336,6 +341,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #endif
 
 #ifdef FUSED
+    tstart = getTime();
     // Solve for the excitation, a PDE
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
@@ -441,6 +447,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #endif
 
+    tcompute += (getTime() - tstart);
 	// MPI_Status statuses[requests.size()];
     if (!cb.noComm) MPI_Waitall(requestNumber, &requests[0], MPI_STATUSES_IGNORE);
 
@@ -883,6 +890,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 	//MPI_Reduce(tempStats, finStats, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	//Method2: double reduce operation
+    if (cb.debug) {
+        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << endl;
+    }
 	double *finStats = alloc1D(1, 2);
 
 	MPI_Reduce(&sumSq, finStats, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
