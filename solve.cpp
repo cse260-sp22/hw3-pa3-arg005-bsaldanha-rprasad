@@ -5,7 +5,6 @@
  * Modified and  restructured by Scott B. Baden, UCSD
  *
  */
-
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream>
@@ -25,6 +24,13 @@
 #define FUSED 1
 #define MANUAL_VECTORIZATION 0
 using namespace std;
+
+#ifdef _MPI_
+double getTime()
+{
+    return MPI_Wtime();
+}
+#endif
 
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
