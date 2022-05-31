@@ -1,5 +1,11 @@
 #!/bin/bash
+# two ways to run the script:
+
+# first: give a target time, #iterations would be automatically computed to give `target_time` seconds
 # bash ./run_experiments.sh --results_folder results_31may_evening --target_time 10
+
+# second way: give a fixed #iterations
+# bash ./run_experiments.sh --results_folder results_31may_evening --iterations 100000
 
 while [ $# -gt 0 ]; do
     if [[ $1 == "--"* ]]; then
@@ -13,10 +19,15 @@ done
 results_folder=${results_folder:-0}
 compute=${compute:-1}
 ref=${ref:-0}
+input_file=${input_file:-0}
+
 # either give target_time or iterations
+# if target_time is give, #iterations would be computed assuming 100% scaling (reference: 20gflops for 1 core)
+# if nothing is provided $target_time would be set to 10s
 target_time=${target_time:-10}
 iterations=${iterations:-0}
-input_file=${input_file:-0}
+
+
 
 user=$(echo $USER)
 if [ "$results_folder" == "0" ]; then
