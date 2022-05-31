@@ -1,1 +1,1 @@
--fopt-info-vec-optimized
+-march=core-avx2
