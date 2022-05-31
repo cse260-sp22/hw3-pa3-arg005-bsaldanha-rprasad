@@ -780,14 +780,14 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
                 plotter->updatePlot(E, -1, m + 1, n + 1);
         }
 
-        tstart = MPI_Wtime();
+        double tstart = MPI_Wtime();
         padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
         tpad += (MPI_Wtime() - tstart);
 
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
-        double tstart = MPI_Wtime();
+        tstart = MPI_Wtime();
         compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
         ttotal += (MPI_Wtime() - tstart);
 
