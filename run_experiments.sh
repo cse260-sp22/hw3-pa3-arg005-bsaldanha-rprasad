@@ -86,3 +86,6 @@ for (( i=1; i<$len; i++ )); do
     run_slurm_job $px $py $N $k
 done
 
+echo "Run the following to collect results in $results_folder/output.csv file. once the job is completed"
+echo "bash ./read_folder.sh --folder_name $results_folder"
+

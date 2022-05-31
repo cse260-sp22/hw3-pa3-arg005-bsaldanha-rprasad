@@ -1,4 +1,5 @@
 #!/bin/bash
+# bash ./read_folder.sh --folder_name folder_name
 
 while [ $# -gt 0 ]; do
     if [[ $1 == "--"* ]]; then
