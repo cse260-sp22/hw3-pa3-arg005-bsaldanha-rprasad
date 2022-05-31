@@ -1,5 +1,5 @@
 #!/bin/bash
-# bash ./run_program.sh --px 1 --py 2 --i 2000 -n 800
+# bash ./run_experiments.sh --results_folder results_31may_evening --target_time 10
 
 while [ $# -gt 0 ]; do
     if [[ $1 == "--"* ]]; then
@@ -11,7 +11,9 @@ while [ $# -gt 0 ]; do
 done
 
 results_folder=${results_folder:-0}
+# either give target_time or iterations
 target_time=${target_time:-10}
+iterations=${iterations:-0}
 
 user=$(echo $USER)
 if [ "$results_folder" == "0" ]; then
@@ -57,11 +59,16 @@ run_slurm_job() {
     py=$2
     N=$3
     k=$4
-    iters=$(get_iterations $N $px $py)
+
+    # computing #iterations to run
+    iters=$iterations
+    if [ "$iters" -eq "0" ]; then
+        iters=$(get_iterations $N $px $py)
+    fi
 
     echo "Running for px = $px, py = $py, N = $N, k = $k, i = $iters"
 
-    # ./run_slurm_job.sh --N $N --px $px --py $py --i $i --compute 1 --t 10 --k $k --results_folder $results_folder
+    ./run_slurm_job.sh --N $N --px $px --py $py --i $i --compute 1 --t 30 --k $k --results_folder $results_folder
 }
 
 echo "length of pxarray = ${#pxarray[@]}"
