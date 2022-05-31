@@ -21,7 +21,7 @@
 #ifdef _MPI_
 #include <mpi.h>
 #endif
-#define FUSED 1
+#undef FUSED 1
 #define MANUAL_VECTORIZATION 0
 using namespace std;
 
@@ -39,6 +39,7 @@ static double tcompute = 0.0;
 static double ttotal = 0.0;
 static double tscatter = 0.0;
 static double tpad = 0.0;
+static double tinnercompute = 0.0;
 
 enum Direction
 {
@@ -313,17 +314,19 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // vector<MPI_Request> requests;
 	MPI_Request requests[8];
 	int requestNumber = 0;
-    double tstart = MPI_Wtime();
+    // double tstart = MPI_Wtime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
-    tcommunicate += (MPI_Wtime() - tstart);
-    if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
+    // tcommunicate += (MPI_Wtime() - tstart);
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
     const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
 
-    tstart = MPI_Wtime();
+	// cout << "[ rank " << my_rank << "] forloop from  " << interior_start_row << " to " << interior_end_row << ". n = " << n << ", m = " << m << endl;
+
+    // tstart = MPI_Wtime();
+	// double tstart2 = MPI_Wtime();
 #ifdef FUSED
     // Solve for the excitation, a PDE
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
@@ -344,8 +347,12 @@ inline void compute(const int m, const int n, const double dt, const double alph
             // E_tmp[i] += 1.0;
             // R_tmp[i] += 3.0;
             // E_tmp[i] = 
+            
+			// tstart2 = MPI_Wtime();
             E_tmp[i] = currentCellE + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE) -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
             R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
+			// tinnercompute += (MPI_Wtime() - tstart2);
+			// if (my_rank == 0) cout << "tinnercompute: " << tinnercompute << endl;
 			// E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
              // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
              // R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
@@ -353,41 +360,48 @@ inline void compute(const int m, const int n, const double dt, const double alph
     }
 #else
     // Solve for the excitation, a PDE
+	register double evalues[n - 2];
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
         E_tmp = E + j;
         E_prev_tmp = E_prev + j;
+
         for (int i = 0; i < n - 2; i++)
         {
+			upCellE = E_prev_tmp[i - (n + 2)];
+			downCellE = E_prev_tmp[i + (n + 2)];
+			leftCellE = E_prev_tmp[i - 1];
+			currentCellE = E_prev_tmp[i];
+			rightCellE = E_prev_tmp[i + 1];
+			currentCellR = R_tmp[i];
+
+            evalues[i] = currentCellE + alpha * (rightCellE + leftCellE  - 4 * currentCellE + upCellE + downCellE);
             // applyODE(E_tmp, E_prev_tmp, R_tmp, i, m, n, alpha);
-            E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
-        }
-    }
+            // evalues[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
+		}
 
-    /*
-     * Solve the ODE, advancing excitation and recovery variables
-     *     to the next timtestep
-     */
-
-    for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
-    {
-        E_tmp = E + j;
-        E_prev_tmp = E_prev + j;
         R_tmp = R + j;
+
 		for (int i = 0; i < n - 2; i++)
         {
+			currentCellE = E_prev_tmp[i];
+			currentCellR = R_tmp[i];
             // applyPDE(E_tmp, E_prev_tmp, R_tmp, i, m, n, dt);
-            E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
-            R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+            evalues[i] += -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
+            currentCellR += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
+            // evalues[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * currentCellR);
+            // currentCellR += dt * (epsilon + M1 * currentCellR / (E_prev_tmp[i] + M2)) * (-currentCellR - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
+			E_tmp[i] = evalues[i];
+			R_tmp[i] = currentCellR;
         }
     }
 #endif
 
-    tcompute += (MPI_Wtime() - tstart);
+    // tcompute += (MPI_Wtime() - tstart);
 	// MPI_Status statuses[requests.size()];
-    tstart = MPI_Wtime();
+    // tstart = MPI_Wtime();
     if (!cb.noComm) MPI_Waitall(requestNumber, &requests[0], MPI_STATUSES_IGNORE);
-    tcommunicate += (MPI_Wtime() - tstart);
+    // tcommunicate += (MPI_Wtime() - tstart);
 
 	// for (int k = 0; k < requests.size(); k++) {
 	// 	int count;
@@ -465,7 +479,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 #else
     // Solve for the excitation, a PDE
     // first row
-    row_offset = 1 + (n + 2);
+    int row_offset = 1 + (n + 2);
     E_tmp = E + row_offset;
     E_prev_tmp = E_prev + row_offset;
     R_tmp = R + row_offset;
@@ -484,8 +498,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	for (int i = 0; i < n; i++)
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
-        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
+        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
     }
 
     // last row
@@ -508,8 +522,8 @@ inline void compute(const int m, const int n, const double dt, const double alph
 	for (int i = 0; i < n; i++)
     {
         // applyPDE(E, E_prev, R, i, m, n, dt);
-        E[i] += -dt * (kk * E_prev[i] * (E_prev[i] - a) * (E_prev[i] - 1) + E_prev[i] * R[i]);
-        R[i] += dt * (epsilon + M1 * R[i] / (E_prev[i] + M2)) * (-R[i] - kk * E_prev[i] * (E_prev[i] - b - 1));
+        E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
+        R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
     }
 
     // first col
@@ -838,7 +852,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
 	//Method2: double reduce operation
     if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter = " << tscatter << ", tpad = " << tpad << endl;
+        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter = " << tscatter << ", tpad = " << tpad << ", tinnercompute = " << tinnercompute << endl;
     }
 	double *finStats = alloc1D(1, 2);
 
