@@ -23,7 +23,7 @@
 #include <mpi.h>
 #endif
 #define FUSED 1
-#define MANUAL_VECTORIZATION 1
+#define MANUAL_VECTORIZATION 0
 using namespace std;
 
 
