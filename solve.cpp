@@ -34,9 +34,9 @@ void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
 double *alloc1D(int m, int n);
 
-double tcommunicate = 0.0;
-double tcompute = 0.0;
-double ttotal = 0.0;
+static double tcommunicate = 0.0;
+static double tcompute = 0.0;
+static double ttotal = 0.0;
 
 enum Direction
 {
@@ -311,17 +311,18 @@ inline void compute(const int m, const int n, const double dt, const double alph
     // vector<MPI_Request> requests;
 	MPI_Request requests[8];
 	int requestNumber = 0;
-    int tstart = MPI_Wtime();
+    double tstart = MPI_Wtime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
-    tcommunicate += MPI_Wtime() - tstart;
+    tcommunicate += (MPI_Wtime() - tstart);
+    // if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
     const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
 
-#ifdef FUSED
     tstart = MPI_Wtime();
+#ifdef FUSED
     // Solve for the excitation, a PDE
     for (int j = interior_start_row; j <= interior_end_row; j += (n + 2))
     {
