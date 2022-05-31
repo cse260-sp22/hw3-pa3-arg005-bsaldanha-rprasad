@@ -24,6 +24,7 @@ k=${k:-0}
 results_folder=${results_folder:-0}
 ref=${ref:-0}
 debug=${debug:-0}
+compute=${compute:-0} # run on compute node
 
 expanse=1
 
@@ -103,6 +104,8 @@ get_partition_type() {
     if [ "$expanse" -eq "0" ]; then
         # if sorken, return CLUSTER
         echo "CLUSTER"
+    elif [ "$compute" -eq "1" ]; then
+        echo "compute"
     elif [ "$nprocs" -ge "128" ]; then
         echo "compute"
     else
