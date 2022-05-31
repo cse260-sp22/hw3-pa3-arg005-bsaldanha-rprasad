@@ -11,6 +11,8 @@ while [ $# -gt 0 ]; do
 done
 
 results_folder=${results_folder:-0}
+compute=${compute:-1}
+ref=${ref:-0}
 # either give target_time or iterations
 target_time=${target_time:-10}
 iterations=${iterations:-0}
@@ -66,9 +68,9 @@ run_slurm_job() {
         iters=$(get_iterations $N $px $py)
     fi
 
-    echo "Running for px = $px, py = $py, N = $N, k = $k, i = $iters"
+    echo "Running for px = $px, py = $py, N = $N, k = $k, i = $iters, compute = $compute,  ref = $ref"
 
-    ./run_slurm_job.sh --N $N --px $px --py $py --i $i --compute 1 --t 30 --k $k --results_folder $results_folder
+    ./run_slurm_job.sh --N $N --px $px --py $py --i $i --compute 1 --t 30 --k $k --results_folder $results_folder --compute $compute --ref $ref
 }
 
 echo "length of pxarray = ${#pxarray[@]}"

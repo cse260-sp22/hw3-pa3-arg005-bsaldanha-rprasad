@@ -140,10 +140,10 @@ n=$(get_n $N) # matrix size
 nprocs=$(($px*$py))
 nodes=$(get_nodes $px $py)
 email=$(get_email)
-outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.k=$k.ref=$ref.out"
+partition_type=$(get_partition_type $nprocs)
+outputfile="$results_folder\/apf.%j.%N.nprocs=$nprocs.px=$px.py=$py.i=$i.n=$n.k=$k.ref=$ref.partition=$partition_type.out"
 jobtime=$(convert_seconds $t)
 n_tasks_per_node=$(get_n_tasks $px $py)
-partition_type=$(get_partition_type $nprocs)
 
 new_command="srun --mpi=pmi2 -n $nprocs $binaryfile -n $n -i $i -x $px -y $py"
 if [ "$expanse" -eq "0" ]; then
