@@ -358,12 +358,12 @@ inline void compute(const int m, const int n, const double dt, const double alph
         for (int i = 0; i < n - 2; i++)
         {
 #ifdef MANUAL_VECTORIZATION
-             left = _mm256_loadu_pd(E_prev_tmp[i-1]);
-             right = _mm256_loadu_pd(E_prev_tmp[i+1]);
-             up = _mm256_loadu_pd(E_prev_tmp[i - (n + 2)]);
-             down = _mm256_loadu_pd(E_prev_tmp[i + (n + 2)]);
-             currentE = _mm256_loadu_pd(E_prev_tmp[i]);
-             currentR = _mm256_loadu_pd(R_tmp[i]);
+             left = _mm256_loadu_pd(&E_prev_tmp[i-1]);
+             right = _mm256_loadu_pd(&E_prev_tmp[i+1]);
+             up = _mm256_loadu_pd(&E_prev_tmp[i - (n + 2)]);
+             down = _mm256_loadu_pd(&E_prev_tmp[i + (n + 2)]);
+             currentE = _mm256_loadu_pd(&E_prev_tmp[i]);
+             currentR = _mm256_loadu_pd(&R_tmp[i]);
 
              temp1 = _mm256_add_pd(left, right);
              temp2 = _mm256_add_pd(up, down);
@@ -380,7 +380,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
              temp2 = _mm256_fmadd_pd(currentR, currentE, temp1);
              current = _mm256_fmadd_pd(packed_dt, temp2, current); // second step done
 
-             _mm256_storeu_pd(E_tmp[i], current);
+             _mm256_storeu_pd(&E_tmp[i], current);
 
              // now use current to compute R
              // R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
@@ -400,7 +400,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
 
              current = _mm256_add_pd(currentR, temp2);
 
-             _mm256_storeu_pd(R_tmp[i], current);
+             _mm256_storeu_pd(&R_tmp[i], current);
  #else
 			upCellE = E_prev_tmp[i - (n + 2)];
 			downCellE = E_prev_tmp[i + (n + 2)];
