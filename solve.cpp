@@ -318,27 +318,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
     const int interior_start_row = 2 + 2 * (n + 2);
     const int interior_end_row = (n + 2) * (m + 2) - 3 * (n + 2) + 2;
 	register double upCellE, rightCellE, downCellE, leftCellE, currentCellE, currentCellR;
-#ifdef MANUAL_VECTORIZATION
-    register __m256d left = _mm256_setzero_pd();
-    register __m256d right = _mm256_setzero_pd();
-    register __m256d up = _mm256_setzero_pd();
-    register __m256d down = _mm256_setzero_pd();
-    register __m256d current = _mm256_setzero_pd();
-    register __m256d temp1 = _mm256_setzero_pd();
-    register __m256d temp2 = _mm256_setzero_pd();
-    register __m256d currentE = _mm256_setzero_pd();
-    register __m256d currentR = _mm256_setzero_pd();
-    register __m256d packed_minus_four = _mm256_set1_pd(-4.0);
-    register __m256d packed_minus_one = _mm256_set1_pd(-1.0);
-    register __m256d packed_alpha = _mm256_set1_pd(alpha);
-    register __m256d packed_dt = _mm256_set1_pd(dt);
-    register __m256d packed_kk = _mm256_set1_pd(kk);
-    register __m256d packed_epsilon = _mm256_set1_pd(epsilon);
-    register __m256d packed_M1 = _mm256_set1_pd(M1);
-    register __m256d packed_M2 = _mm256_set1_pd(M2);
-    register __m256d packed_a = _mm256_set1_pd(a);
-    register __m256d packed_b = _mm256_set1_pd(b);
-#endif
 
 #ifdef FUSED
     tstart = getTime();
@@ -350,52 +329,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
         R_tmp = R + j;
         for (int i = 0; i < n - 2; i++)
         {
-#ifdef MANUAL_VECTORIZATION
-            left = _mm256_loadu_pd(E_prev_tmp[i-1]);
-            right = _mm256_loadu_pd(E_prev_tmp[i+1]);
-            up = _mm256_loadu_pd(E_prev_tmp[i - (n + 2)]);
-            down = _mm256_loadu_pd(E_prev_tmp[i + (n + 2)]);
-            currentE = _mm256_loadu_pd(E_prev_tmp[i]);
-            currentR = _mm256_loadu_pd(R_tmp[i]);
-
-            temp1 = _mm256_add_pd(left, right);
-            temp2 = _mm256_add_pd(up, down);
-            temp1 = _mm256_add_pd(temp1, temp2);
-            temp2 = _mm256_fmadd_pd(packed_minus_four, currentE, temp1);
-            current = _mm256_fmadd_pd(packed_alpha, temp2, currentE); // first step done
-
-            //  -dt * (kk * currentCellE * (currentCellE - a) * (currentCellE - 1) + currentCellE * currentCellR);
-            temp1 = _mm256_mul_pd(packed_kk, currentE);
-            temp2 = _mm256_add_pd(currentE, packed_minus_one);
-            temp2 = _mm256_mul_pd(temp1, temp2);
-            temp1 = _mm256_sub_pd(currentE, packed_a);
-            temp1 = _mm256_mul_pd(temp1, temp2);
-            temp2 = _mm256_fmadd_pd(currentR, currentE, temp1);
-            current = _mm256_fmadd_pd(packed_dt, temp2, current); // second step done
-
-            _mm256_storeu_pd(E_tmp[i], current);
-
-            // now use current to compute R
-            // R_tmp[i] += dt * (epsilon + M1 * currentCellR / (currentCellE + M2)) * (-currentCellR - kk * currentCellE * (currentCellE - b - 1));
-            temp1 = _mm256_add_pd(currentE, packed_M2);
-            temp1 = _mm256_div_pd(currentR, temp1);
-            temp1 = _mm256_fmadd_pd(packed_M1, temp1, packed_epsilon);
-
-            temp2 = _mm256_sub_pd(currentE, packed_b);
-            temp2 = _mm256_add_pd(temp2, packed_minus_one);
-            temp2 = _mm256_mul_pd(temp2, currentE);
-            temp2 = _mm256_mul_pd(temp2, packed_kk);
-            temp2 = _mm256_add_pd(temp2, currentR);
-
-            temp2 = _mm256_mul_pd(temp1, temp2);
-            temp2 = _mm256_mul_pd(packed_minus_one, temp2);
-            temp2 = _mm256_mul_pd(temp2, packed_dt);
-
-            current = _mm256_add_pd(currentR, temp2);
-
-            _mm256_storeu_pd(R_tmp[i], current);
-#else
-
 			upCellE = E_prev_tmp[i - (n + 2)];
 			downCellE = E_prev_tmp[i + (n + 2)];
 			leftCellE = E_prev_tmp[i - 1];
@@ -412,7 +345,6 @@ inline void compute(const int m, const int n, const double dt, const double alph
 			// E_tmp[i] = E_prev_tmp[i] + alpha * (E_prev_tmp[i + 1] + E_prev_tmp[i - 1] - 4 * E_prev_tmp[i] + E_prev_tmp[i + (n + 2)] + E_prev_tmp[i - (n + 2)]);
              // E_tmp[i] += -dt * (kk * E_prev_tmp[i] * (E_prev_tmp[i] - a) * (E_prev_tmp[i] - 1) + E_prev_tmp[i] * R_tmp[i]);
              // R_tmp[i] += dt * (epsilon + M1 * R_tmp[i] / (E_prev_tmp[i] + M2)) * (-R_tmp[i] - kk * E_prev_tmp[i] * (E_prev_tmp[i] - b - 1));
-#endif
         }
     }
 #else
