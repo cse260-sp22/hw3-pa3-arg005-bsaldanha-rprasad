@@ -37,6 +37,7 @@ double *alloc1D(int m, int n);
 static double tcommunicate = 0.0;
 static double tcompute = 0.0;
 static double ttotal = 0.0;
+static double tscatter = 0.0;
 
 enum Direction
 {
@@ -750,7 +751,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
+    double tstart = MPI_Wtime();
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
+    tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
@@ -832,7 +835,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
 	//Method2: double reduce operation
     if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << endl;
+        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter" << tscatter << endl;
     }
 	double *finStats = alloc1D(1, 2);
 
