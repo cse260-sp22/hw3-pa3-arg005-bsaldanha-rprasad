@@ -316,7 +316,7 @@ inline void compute(const int m, const int n, const double dt, const double alph
     double tstart = MPI_Wtime();
     if (!cb.noComm) communicateGhostCells(m, n, E_prev, my_rank, requests, requestNumber);
     tcommunicate += (MPI_Wtime() - tstart);
-    if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
+    // if (cb.debug) cout << "[rank ] " << my_rank << "] tcommunicate now: " << tcommunicate << endl;
 
     // this computes interior
     const int interior_start_row = 2 + 2 * (n + 2);
