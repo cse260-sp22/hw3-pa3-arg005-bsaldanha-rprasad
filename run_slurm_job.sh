@@ -23,6 +23,7 @@ profile=${profile:-0}
 k=${k:-0}
 results_folder=${results_folder:-0}
 ref=${ref:-0}
+debug=${debug:-0}
 
 expanse=1
 
@@ -152,6 +153,10 @@ fi
 
 if [ "$k" -eq "1" ]; then
     new_command="$new_command -k"
+fi
+
+if [ "$debug" -eq "1" ]; then
+    new_command="$new_command -d"
 fi
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"
