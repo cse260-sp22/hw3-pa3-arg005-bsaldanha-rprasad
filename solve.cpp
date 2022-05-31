@@ -36,6 +36,7 @@ double *alloc1D(int m, int n);
 
 double tcommunicate = 0.0;
 double tcompute = 0.0;
+double ttotal = 0.0;
 
 enum Direction
 {
@@ -779,7 +780,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
+        double tstart = MPI_Wtime();
         compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
+        ttotal += (MPI_Wtime() - tstart);
 
         /////////////////////////////////////////////////////////////////////////////////
 
@@ -828,7 +831,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
 	//Method2: double reduce operation
     if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << endl;
+        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << endl;
     }
 	double *finStats = alloc1D(1, 2);
 
