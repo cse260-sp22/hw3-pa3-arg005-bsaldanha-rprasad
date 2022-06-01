@@ -741,9 +741,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
-    double tstart = MPI_Wtime();
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
-    tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
@@ -769,16 +767,12 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
                 plotter->updatePlot(E, -1, m + 1, n + 1);
         }
 
-        double tstart = MPI_Wtime();
         padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
-        tpad += (MPI_Wtime() - tstart);
 
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
-        tstart = MPI_Wtime();
         compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
-        ttotal += (MPI_Wtime() - tstart);
 
         /////////////////////////////////////////////////////////////////////////////////
 
