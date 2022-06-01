@@ -5,3 +5,7 @@
 ```
 squeue | sort -nk1 | grep Priority | awk '/fermi/{print NR, $0}'
 ```
+
+```
+bash ./run_experiments.sh --results_folder q2c16cores --iterations 10000 --input_file q2c.csv
+```
