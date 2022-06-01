@@ -23,14 +23,14 @@ echo "n,px,py,k,i,runtime,gflops,Linf,L2" > $output_file
 
 for file in $folder_name/*; do
     echo "$(basename "$file")"
-    read n <<< $(awk '/@/{printf "%f", substr($2,1) }' $file)
-    read px <<< $(awk '/@/{printf "%f", substr($4,1) }' $file)
-    read py <<< $(awk '/@/{printf "%f", substr($5,1) }' $file)
-    read k <<< $(awk '/@/{printf "%f", substr($6,1) }' $file)
-    read i <<< $(awk '/@/{printf "%f", substr($7,1) }' $file)
-    read runtime <<< $(awk '/@/{printf "%f", substr($8,1) }' $file)
-    read gflops <<< $(awk '/@/{printf "%f", substr($9,1) }' $file)
-    read Linf <<< $(awk '/@/{printf "%f", substr($10,1) }' $file)
-    read L2 <<< $(awk '/@/{printf "%f", substr($11,1) }' $file)
+    read n <<< $(awk '/@/{printf "%d", $2 }' $file)
+    read px <<< $(awk '/@/{printf "%d", $4 }' $file)
+    read py <<< $(awk '/@/{printf "%d", $5 }' $file)
+    read k <<< $(awk '/@/{printf "%s", $6 }' $file)
+    read i <<< $(awk '/@/{printf "%d", $7 }' $file)
+    read runtime <<< $(awk '/@/{printf "%f", $8 }' $file)
+    read gflops <<< $(awk '/@/{printf "%f", $9 }' $file)
+    read Linf <<< $(awk '/@/{printf "%f", $10 }' $file)
+    read L2 <<< $(awk '/@/{printf "%f", $11 }' $file)
     echo "$n,$px,$py,$k,$i,$runtime,$gflops,$Linf,$L2" >> $output_file
 done

@@ -27,8 +27,6 @@ input_file=${input_file:-0}
 target_time=${target_time:-10}
 iterations=${iterations:-0}
 
-
-
 user=$(echo $USER)
 if [ "$results_folder" == "0" ]; then
     results_folder=$(echo results_$(date +"%Y-%m-%dT%H:%M%z")_$user)
@@ -43,7 +41,6 @@ while IFS=',' read -ra array; do
   pyarray+=("${array[1]}")
   Narray+=("${array[2]}")
   karray+=("${array[3]}")
-#   iarray+=("${array[4]}")
 done < $input_file
 
 # printf '%s\n' "${pxarray[@]}"
