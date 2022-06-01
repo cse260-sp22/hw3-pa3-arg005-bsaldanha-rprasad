@@ -689,6 +689,7 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
         {
             E_prev[i] = E_prev[i - (n + 2) * 2];
         }
+    }
 
     if (col == 0)
     {
