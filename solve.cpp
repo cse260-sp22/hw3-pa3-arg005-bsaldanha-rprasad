@@ -741,7 +741,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     // scatter the initial conditions
     double *E_prev = *_E_prev;
     double tstart = MPI_Wtime();
-    scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
+    if(!cb.noComm) scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
     tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
@@ -808,7 +808,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     //  printMat2("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
 
-    stats(E_prev, m, n, &Linf, &sumSq);
+    if(!cb.noComm) stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
 
 	// if (cb.debug) printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
