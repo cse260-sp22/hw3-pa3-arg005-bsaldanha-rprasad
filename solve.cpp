@@ -574,42 +574,17 @@ inline void scatterInitialCondition(
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
 
-    double *sendE = alloc1D(cb.m, cb.n);
-    double *sendR = alloc1D(cb.m, cb.n);
-
-    repackForScattering(E, sendE, nprocs);
-    repackForScattering(R, sendR, nprocs);
-
+    double *send = alloc1D(cb.m, cb.n);
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
 
-/*
-    if (myrank == 0 && cb.debug)
-    {
-        cout << "sendcounts: ";
-        printArrayInt(sendcounts, nprocs);
-        cout << "\n";
-
-        cout << "senddispls: ";
-        printArrayInt(senddispls, nprocs);
-        cout << "\n";
-
-        cout << "sendE: ";
-        printArray(sendE, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
-
-        cout << "sendR: ";
-        printArray(sendR, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
-    }
-*/
-
+    repackForScattering(E, send, nprocs);
     double *s_tempE = alloc1D(m, n);
+    MPI_Scatterv(send, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    repackForScattering(R, send, nprocs);
     double *s_tempR = alloc1D(m, n);
-
-    MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
+    MPI_Scatterv(send, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
     memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
@@ -620,8 +595,7 @@ inline void scatterInitialCondition(
         memcpy(recvR + (n + 2) * (j + 1) + 1, s_tempR + j * n, n * sizeof(double));
     }
 
-    free(sendE);
-    free(sendR);
+    free(send);
     free(sendcounts);
     free(senddispls);
 	free(s_tempE);
@@ -767,9 +741,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     // scatter the initial conditions
     double *E_prev = *_E_prev;
-    // double tstart = MPI_Wtime();
+    double tstart = MPI_Wtime();
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
-    // tscatter += (MPI_Wtime() - tstart);
+    tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
