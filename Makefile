@@ -6,7 +6,7 @@ COMET = $(shell hostname | grep comet | wc -c)
 
 # If you want to compile with MPI enabled,
 # uncomment this line
-# mpi = 1
+mpi = 1
 
 ifneq ($(STAMPEDE), 0)
 include $(PUB)/Arch/arch.intel-c++11.generic
@@ -47,6 +47,8 @@ C++FLAGS += -DSSE_VEC
 C++FLAGS += -msse -msse2
 #C++FLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2 -march=native -DSSE_VEC
 endif
+
+C++FLAGS += -mavx -march=core-avx2
 
 app:		apf
 

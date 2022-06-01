@@ -50,7 +50,7 @@ void init (double *E,double *E_prev,double *R,int m,int n){
         R[i] = 1.0;
     }
     // We only print the meshes if they are small enough
-#if 1
+#if 0
     printMat("E_prev",E_prev,m,n);
     printMat("R",R,m,n);
 #endif
@@ -83,4 +83,37 @@ void printMat(const char mesg[], double *E, int m, int n){
        if (colIndex == n+1)
 	    printf("\n");
     }
+}
+
+void printMatFull(const char mesg[], double *E, int m, int n){
+    int i;
+    printf("%s\n",mesg);
+    for (i=0; i < (m)*(n); i++){
+       int rowIndex = i / (n);
+       int colIndex = i % (n);
+		printf("%6.3f ", E[i]);
+       if (colIndex == n-1)
+	    printf("\n");
+    }
+	printf("\n");
+}
+
+void printArray(double *E, int m){
+    int i;
+    printf("[");
+    for (i=0; i < m; i++){
+        printf("%6.3f,", E[i]);
+    }
+    printf("]");
+    printf("\n");
+}
+
+void printArrayInt(int *E, int m){
+    int i;
+    printf("[");
+    for (i=0; i < m; i++){
+        printf("%d, ", E[i]);
+    }
+    printf("]");
+    printf("\n");
 }
