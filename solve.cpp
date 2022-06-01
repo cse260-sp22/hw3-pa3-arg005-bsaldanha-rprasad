@@ -610,10 +610,6 @@ inline void scatterInitialCondition(
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // free(sendE);
-    // free(sendR);
-    // free(sendcounts);
-    // free(senddispls);
 
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
     memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
@@ -623,6 +619,13 @@ inline void scatterInitialCondition(
         memcpy(recvE + (n + 2) * (j + 1) + 1, s_tempE + j * n, n * sizeof(double));
         memcpy(recvR + (n + 2) * (j + 1) + 1, s_tempR + j * n, n * sizeof(double));
     }
+
+    free(sendE);
+    free(sendR);
+    free(sendcounts);
+    free(senddispls);
+	free(s_tempE);
+	free(s_tempR);
 }
 
 inline void gatherFinalValues(
@@ -864,8 +867,6 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     *_E = E;
     *_E_prev = E_prev;
 
-    // free(recvE);
-    // free(recvR);
 }
 
 void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
