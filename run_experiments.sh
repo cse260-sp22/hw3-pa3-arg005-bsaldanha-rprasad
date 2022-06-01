@@ -65,9 +65,9 @@ get_iterations() {
     fi
 
 	# 20gflops is estimated perf for 1 core!
-	single_core_gflops==20
+	single_core_gflops=20
     estimated_gflops=$(($single_core_gflops*$px*$py))
-    niters=$(($estimated_gflops*$target_time*1000/$n*1000/$n*1000/28/1000*1000))
+    niters=$(($estimated_gflops*$target_time*1000/$n*1000/$n*1000/28))
     echo $niters
     # echo "Estimated gflops: $estimated_gflops"
 }
@@ -86,7 +86,7 @@ run_slurm_job() {
 
     echo "Running for px = $px, py = $py, N = $N, k = $k, i = $iters, compute = $compute,  ref = $ref"
 
-    ./run_slurm_job.sh --N $N --px $px --py $py --i $i --compute 1 --t 30 --k $k --results_folder $results_folder --compute $compute --ref $ref
+    bash ./run_slurm_job.sh --N $N --px $px --py $py --i $iters --compute 1 --t 30 --k $k --results_folder $results_folder --compute $compute --ref $ref
 }
 
 echo "length of pxarray = ${#pxarray[@]}"
@@ -103,5 +103,5 @@ for (( i=1; i<$len; i++ )); do
 done
 
 echo "Run the following to collect results in $results_folder/output.csv file. once the job is completed"
-echo "bash ./read_folder.sh --folder_name $results_folder"
+echo "bash ./read_results.sh --folder_name $results_folder"
 
