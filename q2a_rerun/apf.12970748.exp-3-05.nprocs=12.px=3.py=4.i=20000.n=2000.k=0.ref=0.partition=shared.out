@@ -1,0 +1,10 @@
+
+[Simulation begins] Wed Jun  1 16:34:50 2022
+
+dt= 0.00117339, # iters = 20000
+m x n = 2000 x 2000
+processor geometry: 3 x 4
+
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 12970748 ON exp-3-05 CANCELLED AT 2022-06-01T16:36:06 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 12970748.0 ON exp-3-05 CANCELLED AT 2022-06-01T16:36:06 DUE TO TIME LIMIT ***

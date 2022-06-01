@@ -1,0 +1,11 @@
+
+[Simulation begins] Wed Jun  1 16:37:27 2022
+
+dt= 0.00117339, # iters = 5000
+m x n = 2000 x 2000
+processor geometry: 1 x 12
+
+Compiled with MPI ENABLED
+Communication shut off
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 12970767 ON exp-1-47 CANCELLED AT 2022-06-01T16:37:31 ***
