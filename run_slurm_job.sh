@@ -25,6 +25,7 @@ results_folder=${results_folder:-0}
 ref=${ref:-0}
 debug=${debug:-0}
 compute=${compute:-0} # run on compute node
+plot=${plot:-0}
 
 expanse=1
 
@@ -160,6 +161,10 @@ fi
 
 if [ "$debug" -eq "1" ]; then
     new_command="$new_command -d"
+fi
+
+if [ "$plot" -ge "1" ]; then
+    new_command="$new_command -p $plot"
 fi
 
 echo "Running for nprocs = $nprocs, px = $px, py = $py"

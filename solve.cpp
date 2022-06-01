@@ -806,6 +806,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
             if (!(niter % cb.plot_freq))
             {
 		double *finE_print = alloc1D(cb.n, cb.m);
+		double *finR_print = alloc1D(cb.n, cb.m);
 		gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
                 plotter->updatePlot(finE_print, niter, m, n);
             }
@@ -857,6 +858,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
  //   double *recvE, double *recvR)
 
 	double *finE_print = alloc1D(cb.n, cb.m);
+	double *finR_print = alloc1D(cb.n, cb.m);
 
 	gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
 
