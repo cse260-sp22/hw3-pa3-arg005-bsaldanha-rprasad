@@ -25,7 +25,6 @@
 #define FUSED 1
 using namespace std;
 
-
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
@@ -690,7 +689,6 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
         {
             E_prev[i] = E_prev[i - (n + 2) * 2];
         }
-    }
 
     if (col == 0)
     {
