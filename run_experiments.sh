@@ -2,7 +2,7 @@
 # two ways to run the script:
 
 # first: give a target time, #iterations would be automatically computed to give `target_time` seconds
-# bash ./run_experiments.sh --results_folder results_31may_evening --target_time 10
+# bash ./run_experiments.sh --results_folder results_31may_evening --target_time 10 --input_file q2c.csv
 
 # second way: give a fixed #iterations
 # bash ./run_experiments.sh --results_folder results_31may_evening --iterations 100000
