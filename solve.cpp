@@ -18,6 +18,7 @@
 #include <emmintrin.h>
 #include "immintrin.h"
 #include <cstring>
+#include <unistd.h>
 #include <vector>
 #ifdef _MPI_
 #include <mpi.h>
@@ -28,7 +29,7 @@ using namespace std;
 
 void repNorms(double l2norm, double mx, double dt, int m, int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
-void printMat2(const char mesg[], double *E, int m, int n);
+void printMat(const char mesg[], double *E, int m, int n);
 void printMatFull(const char mesg[], double *E, int m, int n);
 void printArray(double *E, int m);
 void printArrayInt(int *E, int m);
@@ -627,8 +628,9 @@ inline void scatterInitialCondition(
 
 inline void gatherFinalValues(
     double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
-    double *recvE, double *recvR)
+    double *finE_unpacked, double *finR_unpacked)
 {
+    const int sendCount = m * n;
     const int receiveCount = cb.m * cb.n;
 
     int *sendcounts = new int[nprocs];
@@ -637,44 +639,28 @@ inline void gatherFinalValues(
     double *finE = alloc1D(cb.m, cb.n);
     double *finR = alloc1D(cb.m, cb.n);
 
-    double *finE_unpacked = alloc1D(cb.m, cb.n);
-    double *finR_unpacked = alloc1D(cb.m, cb.n);
+    //finE_unpacked = alloc1D(cb.m, cb.n);
+    //finR_unpacked = alloc1D(cb.m, cb.n);
 
-    // printMat2("E",E,cb.m, cb.n);
-    // printMat2("R",R,cb.m, cb.n);
+    // printMat("E",E,cb.m, cb.n);
+    // printMat("R",R,cb.m, cb.n);
 
     double *r_tempE = alloc1D(m, n);
     double *r_tempR = alloc1D(m, n);
 
-    repackForGathering(recvE, r_tempE, nprocs, myrank);
-    repackForGathering(recvR, r_tempR, nprocs, myrank);
+    repackForGathering(E, r_tempE, nprocs, myrank);
+    repackForGathering(R, r_tempR, nprocs, myrank);
 
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
+ 
+	sleep(myrank);
+	printf("[my rank]: %d\n", myrank);	
+	printMatFull("Intermediate matrices", r_tempE, m, n);
+printf("\n\n");
 
-    // if (myrank == 0 && cb.debug) {
-    //     cout << "sendcounts: ";
-    //     printArrayInt(sendcounts, nprocs);
-    //     cout << "\n";
-
-    //    cout << "senddispls: ";
-    //    printArrayInt(senddispls, nprocs);
-    //    cout << "\n";
-
-    //    cout << "sendE: ";
-    //    printArray(sendE, (cb.m + 2) * (cb.n + 2));
-    //    cout << "\n";
-
-    //    cout << "sendR: ";
-    //    printArray(sendR, (cb.m + 2) * (cb.n + 2));
-    //    cout << "\n";
-    //}
-
-    // double* recvE = new double[receiveCount];
-    // double* recvR = new double[receiveCount];
-
-    MPI_Gatherv(r_tempE, receiveCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Gatherv(r_tempR, receiveCount, MPI_DOUBLE, finR, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(r_tempE, sendCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(r_tempR, sendCount, MPI_DOUBLE, finR, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     unpackForPlotting(finE, finE_unpacked, nprocs);
     unpackForPlotting(finR, finR_unpacked, nprocs);
@@ -819,7 +805,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
         {
             if (!(niter % cb.plot_freq))
             {
-                plotter->updatePlot(E, niter, m, n);
+		double *finE_print = alloc1D(cb.n, cb.m);
+		gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
+                plotter->updatePlot(finE_print, niter, m, n);
             }
         }
 
@@ -830,7 +818,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     } // end of 'niter' loop at the beginning
 
-    //  printMat2("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
+    //  printMat("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
 
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
@@ -864,6 +852,19 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     *_E = E;
     *_E_prev = E_prev;
 
+//	 gatherFinalValues(
+ //   double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
+ //   double *recvE, double *recvR)
+
+	double *finE_print = alloc1D(cb.n, cb.m);
+
+	gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
+
+	if (cb.debug){
+		if (myrank == 0){	
+			printMat("Final matrix", finE_print, cb.n, cb.m);
+		}
+	}
     // free(recvE);
     // free(recvR);
 }
@@ -1009,7 +1010,7 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
 
     } // end of 'niter' loop at the beginning
 
-    //  printMat2("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
+    //  printMat("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
 
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
@@ -1018,34 +1019,14 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
 	// Swap pointers so we can re-use the arrays
     *_E = E;
     *_E_prev = E_prev;
+	
+	
+	printMat("Final matrix", E, cb.m, cb.n);
 }
 
 void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
 {
-    solveMPI(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
-    // solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    //solveMPI(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
 }
 
-
-void printMat2(const char mesg[], double *E, int m, int n)
-{
-    int i;
-#if 0
-    if (m>8)
-      return;
-#else
-    if (m > 34)
-        return;
-#endif
-    printf("%s\n", mesg);
-    for (i = 0; i < (m + 2) * (n + 2); i++)
-    {
-        int rowIndex = i / (n + 2);
-        int colIndex = i % (n + 2);
-        if ((colIndex > 0) && (colIndex < n + 1))
-            if ((rowIndex > 0) && (rowIndex < m + 1))
-                printf("%6.3f ", E[i]);
-        if (colIndex == n + 1)
-            printf("\n");
-    }
-}
