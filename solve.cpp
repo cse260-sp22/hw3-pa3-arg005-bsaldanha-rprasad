@@ -570,18 +570,26 @@ inline void scatterInitialCondition(
     double *recvE, double *recvR)
 {
     const int receiveCount = m * n;
+	const bool debug = myrank == 0;
+
+	if (debug) cout << "init scattering " << endl;
 
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
+	if (debug) cout << "done sendcounts and senddispls" << endl;
 
     double *sendE = alloc1D(cb.m, cb.n);
     double *sendR = alloc1D(cb.m, cb.n);
+	if (debug) cout << "done sendE and sendR" << endl;
 
     repackForScattering(E, sendE, nprocs);
     repackForScattering(R, sendR, nprocs);
 
+	if (debug) cout << "repacked for scattering" << endl;
+
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
+	if (debug) cout << "filled send counts and displs" << endl;
 
 /*
     if (myrank == 0 && cb.debug)
@@ -606,19 +614,22 @@ inline void scatterInitialCondition(
 
     double *s_tempE = alloc1D(m, n);
     double *s_tempR = alloc1D(m, n);
+	if (debug) cout << "allocated tempE and tempR" << endl;
 
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
+	if (debug) cout << "scattering completed" << endl;
 
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
     memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
+	if (debug) cout << "memset completed" << endl;
 
     for (int j = 0; j < m; ++j)
     {
         memcpy(recvE + (n + 2) * (j + 1) + 1, s_tempE + j * n, n * sizeof(double));
         memcpy(recvR + (n + 2) * (j + 1) + 1, s_tempR + j * n, n * sizeof(double));
     }
+	if (debug) cout << "memcpy completed" << endl;
 
     free(sendE);
     free(sendR);
@@ -626,6 +637,7 @@ inline void scatterInitialCondition(
     free(senddispls);
 	free(s_tempE);
 	free(s_tempR);
+	if (debug) cout << "free done!" << endl;
 }
 
 inline void gatherFinalValues(
@@ -743,12 +755,14 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     cout << "Error: MPI not enabled" << endl;
     return;
 #endif
-
+	
     // MPI_Init(&argc,&argv);
 
     int nprocs = 1, myrank = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+	if (myrank == 0) cout << "[inside solve] comm rank done" << endl;
 
     // initializing current processor dimensions
     int m, n; // dimensions of E current processor would compute
@@ -768,7 +782,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     // scatter the initial conditions
     double *E_prev = *_E_prev;
     // double tstart = MPI_Wtime();
+	if (myrank == 0) cout << "[inside solve] scattering start" << endl;
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
+	if (myrank == 0) cout << "[inside solve] scattering done" << endl;
     // tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
@@ -786,6 +802,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     // the desired number of iterations
     for (niter = 0; niter < cb.niters; niter++)
     {
+		if (niter % 100 == 0) {
+			if (myrank == 0) cout << "[inside solve] niter = " << niter << endl;
+		}
         if (cb.debug && (niter == 0))
         {
             stats(E_prev, m, n, &mx, &sumSq);
@@ -795,16 +814,16 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
                 plotter->updatePlot(E, -1, m + 1, n + 1);
         }
 
-        double tstart = MPI_Wtime();
+		if (myrank == 0 && niter % 1000 == 0) cout << "[inside solve] starting padding " << endl;
         padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
-        tpad += (MPI_Wtime() - tstart);
+		if (myrank == 0 && niter % 1000 == 0) cout << "[inside solve] ending padding " << endl;
 
         // communicate the boundaries with other processors (TODO: Raghav & Brandon)
         // and update compute part of the function too!
         //////////////////////////////////////////////////////////////////////////////
-        tstart = MPI_Wtime();
+		if (myrank == 0 && niter % 1000 == 0) cout << "[inside solve] starting compute " << endl;
         compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
-        ttotal += (MPI_Wtime() - tstart);
+		if (myrank == 0 && niter % 1000 == 0) cout << "[inside solve] ending compute " << endl;
 
         /////////////////////////////////////////////////////////////////////////////////
 
@@ -833,6 +852,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     } // end of 'niter' loop at the beginning
 
+	if (myrank == 0) cout << "[inside solve] completed cb.niters iterations " << endl;
     //  printMat2("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
 
     stats(E_prev, m, n, &Linf, &sumSq);
@@ -852,13 +872,13 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 	//MPI_Reduce(tempStats, finStats, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	//Method2: double reduce operation
-    if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter = " << tscatter << ", tpad = " << tpad << ", tinnercompute = " << tinnercompute << endl;
-    }
 	double *finStats = alloc1D(1, 2);
 
+	if (myrank == 0) cout << "[inside solve] starting mpi reduce" << endl;
 	MPI_Reduce(&sumSq, finStats, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	if (myrank == 0) cout << "[inside solve] starting mpi reduce2" << endl;
 	MPI_Reduce(&Linf, finStats + 1, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+	if (myrank == 0) cout << "[inside solve] ending mpi reduce2" << endl;
    
 	L2 = L2Norm(finStats[0]);
 	Linf = finStats[1];
@@ -867,6 +887,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     *_E = E;
     *_E_prev = E_prev;
 
+	if (myrank == 0) cout << "[inside solve] ending solve" << endl;
 }
 
 void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)

@@ -40,6 +40,7 @@ int main(int argc, char** argv)
   */
  double *E, *R, *E_prev;
 
+
  // Default values for the command line arguments
  cb.m = cb.n=255;
  cb.stats_freq = 0;
@@ -52,10 +53,12 @@ int main(int argc, char** argv)
 #ifdef _MPI_
  MPI_Init(&argc,&argv);
 #endif
+// cout << "MPI init done at " << MPI_Wtime() << endl;
 
 // Parse command line arguments
  cmdLine( argc, argv);
 // The algorithm fails when n is too small
+// cout << "cmdLine done at " << MPI_Wtime() << endl;
  if (cb.n <= 25){
     cout << "\n *** N must be larger than 25.  Exiting ... " << endl << endl;
     exit(-1);
@@ -68,6 +71,7 @@ int main(int argc, char** argv)
  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 #endif
+if (myrank == 0) cout << "MPI_Comm_rank done at " << MPI_Wtime() << endl;
 
  // Allocate contiguous memory for solution arrays
  // The computational box is defined on [1:m+1,1:n+1]
@@ -76,8 +80,10 @@ int main(int argc, char** argv)
  E = alloc1D(cb.m+2,cb.n+2);
  E_prev = alloc1D(cb.m+2,cb.n+2);
  R = alloc1D(cb.m+2,cb.n+2);
+if (myrank == 0) cout << "E, E_prev, R allocation done at " << MPI_Wtime() << endl;
 
  init(E,E_prev,R,cb.m,cb.n);
+if (myrank == 0) cout << "init call done at " << MPI_Wtime() << endl;
 
  //
  // Initizialize various parmaters used by the numerical scheme
@@ -102,6 +108,7 @@ int main(int argc, char** argv)
 
  // Report various information
  ReportStart(dt);
+if (myrank == 0) cout << "ReportStart call done at " << MPI_Wtime() << endl;
 
  Plotter *plotter = NULL;
  if (cb.plot_freq){
@@ -113,7 +120,9 @@ int main(int argc, char** argv)
  double t0 = -getTime();
 
  double L2, Linf;
+if (myrank == 0) cout << "Starting solve at " << MPI_Wtime() << endl;
  solve(&E, &E_prev, R, alpha, dt, plotter,L2,Linf);
+if (myrank == 0) cout << "Ending solve at " << MPI_Wtime() << endl;
 
 #ifdef _MPI_
  t0 += MPI_Wtime();
@@ -123,6 +132,7 @@ int main(int argc, char** argv)
 
  // Report various information
  ReportEnd(L2,Linf,t0);
+if (myrank == 0) cout << "ReportEnd done at " << MPI_Wtime() << endl;
 
  if (cb.plot_freq){
     cout << "\n\nEnter any input to close the program and the plot...";
@@ -133,6 +143,7 @@ int main(int argc, char** argv)
  free (E);
  free (E_prev);
  free (R);
+if (myrank == 0) cout << "freeing memory done at " << MPI_Wtime() << endl;
  if (cb.plot_freq)
      delete plotter;
 #ifdef _MPI_
