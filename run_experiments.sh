@@ -20,6 +20,11 @@ results_folder=${results_folder:-0}
 compute=${compute:-1}
 ref=${ref:-0}
 input_file=${input_file:-0}
+max_time=${max_time:-30}
+
+if [ "$max_time" -ge 180 ]; then
+    max_time=180
+fi
 
 # either give target_time or iterations
 # if target_time is give, #iterations would be computed assuming 100% scaling (reference: 20gflops for 1 core)
@@ -83,7 +88,7 @@ run_slurm_job() {
 
     echo "Running for px = $px, py = $py, N = $N, k = $k, i = $iters, compute = $compute,  ref = $ref"
 
-    bash ./run_slurm_job.sh --N $N --px $px --py $py --i $iters --compute 1 --t 30 --k $k --results_folder $results_folder --compute $compute --ref $ref
+    bash ./run_slurm_job.sh --N $N --px $px --py $py --i $iters --compute 1 --t $max_time --k $k --results_folder $results_folder --compute $compute --ref $ref
 }
 
 echo "length of pxarray = ${#pxarray[@]}"
