@@ -1,0 +1,21 @@
+[exp-2-28:mpi_rank_0][rdma_param_handle_heterogeneity] All nodes involved in the job were detected to be homogeneous in terms of processors and interconnects. Setting MV2_HOMOGENEOUS_CLUSTER=1 can improve job startup performance on such systems. The following link has more details on enhancing job startup performance. http://mvapich.cse.ohio-state.edu/performance/job-startup/.
+[exp-2-28:mpi_rank_0][rdma_param_handle_heterogeneity] To suppress this warning, please set MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING to 1
+
+[Simulation begins] Wed Jun  1 15:36:51 2022
+
+dt= 7.41769e-05, # iters = 8000
+m x n = 8000 x 8000
+processor geometry: 6 x 64
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Wed Jun  1 15:36:55 2022
+
+End at iteration 7999
+Max norm: 9.89918e-01, L2norm: -nan
+Running Time: 4.22524 sec. [3.39e+03 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 8000 8000    6 64      N     8000  4.225 3393    9.89918e-01 -nan
+  -----
