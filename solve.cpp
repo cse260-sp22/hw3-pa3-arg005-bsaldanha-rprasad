@@ -143,7 +143,11 @@ void repackForScattering(double *data, double *packed, const int nprocs)
 
 void repackForGathering(double *data, double *packed, const int nprocs, const int myrank)
 {
-    int m, n, rowOffset, colOffset, idx = 0, row, col;
+    // pack data in to packed (without padding)
+    // data: (m+2) x (n+2)
+    // packed: (m x n)
+
+    int m, n, idx = 0, row, col;
 
     setCurrentProcessorDim(m, n, myrank, nprocs);
     // copy row by row (for m columns)
@@ -158,11 +162,14 @@ void repackForGathering(double *data, double *packed, const int nprocs, const in
 
 void unpackForPlotting(double *data, double *unpacked, const int nprocs)
 {
+    // unpack data (cb.m x cb.n) [contiguous] into unpacked ((cb.m+2) x (cb.n+2))
     int m, n, rowOffset, colOffset, idx = 0, row, col;
 
     for (int rank = 0; rank < nprocs; ++rank)
     {
         // for each rank, identify where to start unpacking data!
+        // read m*n bytes, and unpack into blocks inside unpacked
+
         // gets m and n for `rank`
         setCurrentProcessorDim(m, n, rank, nprocs);
         // gets row and column offsets for `rank`
@@ -171,11 +178,11 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs)
         // copy row by row (for m columns)
         for (int i = 0; i < m; ++i)
         {
-            row = rowOffset + i;
-            col = colOffset;
+            row = rowOffset + i + 1;
+            col = colOffset + 1;
             //cout << "row = " << row << " col = " << col << endl;
             //cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
-            memcpy(unpacked + row * (cb.n) + col, data + idx, n * sizeof(double));
+            memcpy(unpacked + row * (cb.n + 2) + col, data + idx, n * sizeof(double));
             idx += n;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
@@ -601,8 +608,8 @@ inline void scatterInitialCondition(
 }
 
 inline void gatherFinalValues(
-    double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
-    double *finE_unpacked, double *finR_unpacked)
+    double *E, const int nprocs, const int myrank, const int m, const int n,
+    double *finE_unpacked)
 {
     const int sendCount = m * n;
     const int receiveCount = cb.m * cb.n;
@@ -610,12 +617,11 @@ inline void gatherFinalValues(
     int *sendcounts = new int[nprocs];
     int *senddispls = new int[nprocs];
 
-    double *finE = alloc1D(cb.m, cb.n);
+    double *receiveE = alloc1D(cb.m, cb.n);
+    double *sendE = alloc1D(m, n); // data to be sent
 
-    double *r_tempE = alloc1D(m, n);
-    double *r_tempR = alloc1D(m, n);
-
-    repackForGathering(E, r_tempE, nprocs, myrank);
+    // packs E in sendE without padding
+    repackForGathering(E, sendE, nprocs, myrank);
 
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
@@ -627,12 +633,13 @@ inline void gatherFinalValues(
 		printf("\n\n");
 	}
 
-    memset(finE, 0.0, (cb.m) * (cb.n) * sizeof(double));
-    memset(finE_unpacked, 0.0, (cb.m) * (cb.n) * sizeof(double));
+    memset(receiveE, 0.0, (cb.m) * (cb.n) * sizeof(double));
+    memset(finE_unpacked, 0.0, (cb.m + 2) * (cb.n + 2) * sizeof(double));
 
-    MPI_Gatherv(r_tempE, sendCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(sendE, sendCount, MPI_DOUBLE, receiveE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    unpackForPlotting(finE, finE_unpacked, nprocs);
+    // unpacks receiveE (cb.m * cb.n) into finE_unpacked ((cb.m + 2) * (cb.n + 2))
+    unpackForPlotting(receiveE, finE_unpacked, nprocs);
 }
 
 void padBoundaries(int m, int n, double *E_prev, const int myrank)
@@ -737,9 +744,8 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
         if (cb.plot_freq) {
            	if (!(niter % cb.plot_freq)) {
-			    double *finE_print = alloc1D(cb.n, cb.m);
-			    double *finR_print = alloc1D(cb.n, cb.m);
-			    gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
+			    double *finE_print = alloc1D(cb.m + 2, cb.n + 2);
+			    gatherFinalValues(E, nprocs, myrank, m, n, finE_print);
 			    if (myrank == 0){                
                     plotter->updatePlot(finE_print, niter, cb.m, cb.n);
                 }	
