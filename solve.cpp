@@ -171,11 +171,11 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs)
         // copy row by row (for m columns)
         for (int i = 0; i < m; ++i)
         {
-            row = rowOffset + i + 1;
-            col = colOffset + 1;
-            // cout << "row = " << row << " col = " << col << endl;
-            // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
-            memcpy(unpacked + row * (cb.n + 2) + col, data + idx, n * sizeof(double));
+            row = rowOffset + i;
+            col = colOffset;
+            //cout << "row = " << row << " col = " << col << endl;
+            //cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
+            memcpy(unpacked + row * (cb.n) + col, data + idx, n * sizeof(double));
             idx += n;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
@@ -627,7 +627,8 @@ inline void gatherFinalValues(
 		printf("\n\n");
 	}
 
-    memset(finE, 0.0, (m + 2) * (n + 2) * sizeof(double));
+    memset(finE, 0.0, (cb.m) * (cb.n) * sizeof(double));
+    memset(finE_unpacked, 0.0, (cb.m) * (cb.n) * sizeof(double));
 
     MPI_Gatherv(r_tempE, sendCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
@@ -740,7 +741,7 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 			    double *finR_print = alloc1D(cb.n, cb.m);
 			    gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
 			    if (myrank == 0){                
-                    plotter->updatePlot(finE_print, niter, cb.m+2, cb.n+2);
+                    plotter->updatePlot(finE_print, niter, cb.m, cb.n);
                 }	
 		    }
         }
