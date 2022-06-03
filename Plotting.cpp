@@ -46,9 +46,10 @@ for (int i=0; i<(m+2)*(n+2); i++) {
                 fprintf(gnu_pipe,"\n");
                 fprintf(gnu_pipe,"\n");
                 fprintf(gnu_pipe,"\n");
-fprintf(gnu_pipe, "set term postscript\n");
-fprintf(gnu_pipe, "set output \"print_%d.ps\"\n", niter);
+fprintf(gnu_pipe, "set term png\n");
+fprintf(gnu_pipe, "set output \"plots\/print_%d.png\"\n", niter);
 fprintf(gnu_pipe, "replot\n");
+fprintf(gnu_pipe, "set term x11\n");
 
     fflush(gnu_pipe);
 
