@@ -27,7 +27,7 @@ void Plotter::updatePlot(double *U,  int niter, int m, int n){
     fprintf(gnu_pipe, "set pm3d map\n");
     fprintf(gnu_pipe, "set palette defined (-3 \"blue\", 0 \"white\", 1 \"red\")\n");
 
-//    fprintf(gnu_pipe, "plot \"-\" with points lt 1 pt 10 ps 1\n");
+//    fprintf(gnu_pipe, "plot \"-\" with points lt 1 pt 10 ps m\n");
 // Various color schemes
 // fprintf(gnu,"set palette rgbformulae 22, 13, 31\n");
 // fprintf(gnu,"set palette rgbformulae 30, 31, 32\n");
@@ -42,6 +42,13 @@ for (int i=0; i<(m+2)*(n+2); i++) {
                 fprintf(gnu_pipe,"\n");
     }
     fprintf(gnu_pipe, "e\n");
+
+                fprintf(gnu_pipe,"\n");
+                fprintf(gnu_pipe,"\n");
+                fprintf(gnu_pipe,"\n");
+fprintf(gnu_pipe, "set term postscript\n");
+fprintf(gnu_pipe, "set output \"print_%d.ps\"\n", niter);
+fprintf(gnu_pipe, "replot\n");
 
     fflush(gnu_pipe);
 

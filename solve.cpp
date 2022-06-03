@@ -171,11 +171,11 @@ void unpackForPlotting(double *data, double *unpacked, const int nprocs)
         // copy row by row (for m columns)
         for (int i = 0; i < m; ++i)
         {
-            row = rowOffset + i;
-            col = colOffset;
+            row = rowOffset + i + 1;
+            col = colOffset + 1;
             // cout << "row = " << row << " col = " << col << endl;
             // cout << "copying from " << row * (cb.n + 2) + col << " to " << row * (cb.n + 2) + col + n << endl;
-            memcpy(unpacked + row * cb.n + col, data + idx, n * sizeof(double));
+            memcpy(unpacked + row * (cb.n + 2) + col, data + idx, n * sizeof(double));
             idx += n;
             // cout << "packed array: from " << idx * n << ": ";
             // printArray(packed + idx, n);
@@ -584,37 +584,11 @@ inline void scatterInitialCondition(
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
 
-/*
-    if (myrank == 0 && cb.debug)
-    {
-        cout << "sendcounts: ";
-        printArrayInt(sendcounts, nprocs);
-        cout << "\n";
-
-        cout << "senddispls: ";
-        printArrayInt(senddispls, nprocs);
-        cout << "\n";
-
-        cout << "sendE: ";
-        printArray(sendE, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
-
-        cout << "sendR: ";
-        printArray(sendR, (cb.m + 2) * (cb.n + 2));
-        cout << "\n";
-    }
-*/
-
     double *s_tempE = alloc1D(m, n);
     double *s_tempR = alloc1D(m, n);
 
     MPI_Scatterv(sendE, sendcounts, senddispls, MPI_DOUBLE, s_tempE, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatterv(sendR, sendcounts, senddispls, MPI_DOUBLE, s_tempR, receiveCount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    // free(sendE);
-    // free(sendR);
-    // free(sendcounts);
-    // free(senddispls);
 
     memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
     memset(recvR, 0.0, (m + 2) * (n + 2) * sizeof(double));
@@ -637,38 +611,27 @@ inline void gatherFinalValues(
     int *senddispls = new int[nprocs];
 
     double *finE = alloc1D(cb.m, cb.n);
-    double *finR = alloc1D(cb.m, cb.n);
-
-    //finE_unpacked = alloc1D(cb.m, cb.n);
-    //finR_unpacked = alloc1D(cb.m, cb.n);
-
-    // printMat("E",E,cb.m, cb.n);
-    // printMat("R",R,cb.m, cb.n);
 
     double *r_tempE = alloc1D(m, n);
     double *r_tempR = alloc1D(m, n);
 
     repackForGathering(E, r_tempE, nprocs, myrank);
-    repackForGathering(R, r_tempR, nprocs, myrank);
 
     fillSendCounts(sendcounts, nprocs);
     fillSendDispls(senddispls, nprocs);
- 
-	sleep(myrank);
-	printf("[my rank]: %d\n", myrank);	
-	printMatFull("Intermediate matrices", r_tempE, m, n);
-printf("\n\n");
+
+	if (cb.debug){ 
+		sleep(myrank);
+		printf("[my rank]: %d\n", myrank);	
+		printMatFull("Intermediate matrices", r_tempE, m, n);
+		printf("\n\n");
+	}
+
+    memset(finE, 0.0, (m + 2) * (n + 2) * sizeof(double));
 
     MPI_Gatherv(r_tempE, sendCount, MPI_DOUBLE, finE, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Gatherv(r_tempR, sendCount, MPI_DOUBLE, finR, sendcounts, senddispls, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     unpackForPlotting(finE, finE_unpacked, nprocs);
-    unpackForPlotting(finR, finR_unpacked, nprocs);
-
-    // free(sendE);
-    // free(sendR);
-    // free(sendcounts);
-    // free(senddispls);
 }
 
 void padBoundaries(int m, int n, double *E_prev, const int myrank)
@@ -684,36 +647,28 @@ void padBoundaries(int m, int n, double *E_prev, const int myrank)
     int row = myrank / cb.px;
     int col = myrank % cb.px;
 
-    if (row == 0)
-    {
+    if (row == 0) {
         // Fills in  the TOP Ghost Cells
-        for (i = 1; i < (n + 1); i++)
-        {
+        for (i = 1; i < (n + 1); i++) {
             E_prev[i] = E_prev[i + (n + 2) * 2];
         }
     }
-    if (row == (cb.py - 1))
-    {
+    if (row == (cb.py - 1)) {
         // Fills in the BOTTOM Ghost Cells
-        for (i = ((m + 2) * (n + 2) - (n + 2) + 1); i < (m + 2) * (n + 2) - 1; i++)
-        {
+        for (i = ((m + 2) * (n + 2) - (n + 2) + 1); i < (m + 2) * (n + 2) - 1; i++) {
             E_prev[i] = E_prev[i - (n + 2) * 2];
         }
     }
 
-    if (col == 0)
-    {
+    if (col == 0) {
         // Fills in the LEFT Ghost Cells
-        for (i = (n + 2); i < (m + 1) * (n + 2); i += (n + 2))
-        {
+        for (i = (n + 2); i < (m + 1) * (n + 2); i += (n + 2)) {
             E_prev[i] = E_prev[i + 2];
         }
     }
-    if (col == (cb.px - 1))
-    {
+    if (col == (cb.px - 1)) {
         // Fills in the RIGHT Ghost Cells
-        for (i = (n + 1 + n + 2); i < (m + 1) * (n + 2); i += (n + 2))
-        {
+        for (i = (n + 1 + n + 2); i < (m + 1) * (n + 2); i += (n + 2)) {
             E_prev[i] = E_prev[i - 2];
         }
     }
@@ -727,8 +682,6 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     return;
 #endif
 
-    // MPI_Init(&argc,&argv);
-
     int nprocs = 1, myrank = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -740,19 +693,8 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     int innerBlockRowStartIndex = (n + 2) + 1;
     int innerBlockRowEndIndex = (((m + 2) * (n + 2) - 1) - (n)) - (n + 2);
 
-    // if (cb.debug) {
-    //     cout << "Processor " << myrank << ": " << "m = " << m << ", n = " << n << ", rowOffset = " << rowOffset << ", colOffset = " << colOffset << ", innerBlockRowStartIndex = " << innerBlockRowStartIndex << ", innerBlockRowEndIndex = " << innerBlockRowEndIndex << endl;
-    // }
-
-    // double *recvEprev = *_E_prev;
-    // double *recvR = _R;
-    // memset(recvE, 0.0, (m + 2) * (n + 2) * sizeof(double));
-
-    // scatter the initial conditions
     double *E_prev = *_E_prev;
-    // double tstart = MPI_Wtime();
     scatterInitialCondition(E_prev, _R, nprocs, myrank, m, n, E_prev, _R);
-    // tscatter += (MPI_Wtime() - tstart);
 
     // Simulated time is different from the integer timestep number
     double t = 0.0;
@@ -767,49 +709,48 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     // We continue to sweep over the mesh until the simulation has reached
     // the desired number of iterations
-    for (niter = 0; niter < cb.niters; niter++)
-    {
-        if (cb.debug && (niter == 0))
-        {
+    for (niter = 0; niter < cb.niters; niter++) {
+        if (cb.debug && (niter == 0) && (myrank == 0)) {
             stats(E_prev, m, n, &mx, &sumSq);
             double l2norm = L2Norm(sumSq);
             repNorms(l2norm, mx, dt, m, n, -1, cb.stats_freq);
-            if (cb.plot_freq)
-                plotter->updatePlot(E, -1, m + 1, n + 1);
+            if (cb.plot_freq && myrank == 0)
+                plotter->updatePlot(E_prev, -1, cb.m + 2, cb.n + 2);
         }
 
         double tstart = MPI_Wtime();
         padBoundaries(m, n, E_prev, myrank); // (TODO: Brandon)
         tpad += (MPI_Wtime() - tstart);
 
-        // communicate the boundaries with other processors (TODO: Raghav & Brandon)
-        // and update compute part of the function too!
-        //////////////////////////////////////////////////////////////////////////////
         tstart = MPI_Wtime();
         compute(m, n, dt, alpha, E, E_tmp, E_prev, E_prev_tmp, R, R_tmp, myrank);
         ttotal += (MPI_Wtime() - tstart);
 
-        /////////////////////////////////////////////////////////////////////////////////
-
-        if (cb.stats_freq)
-        {
-            if (!(niter % cb.stats_freq))
-            {
+        if (cb.stats_freq) {
+            if (!(niter % cb.stats_freq)) {
                 stats(E, m, n, &mx, &sumSq);
                 double l2norm = L2Norm(sumSq);
                 repNorms(l2norm, mx, dt, m, n, niter, cb.stats_freq);
             }
         }
 
-        if (cb.plot_freq)
-        {
-            if (!(niter % cb.plot_freq))
-            {
-		double *finE_print = alloc1D(cb.n, cb.m);
-		double *finR_print = alloc1D(cb.n, cb.m);
-		gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
-                plotter->updatePlot(finE_print, niter, m, n);
-            }
+        if (cb.plot_freq) {
+           	if (!(niter % cb.plot_freq)) {
+			    double *finE_print = alloc1D(cb.n, cb.m);
+			    double *finR_print = alloc1D(cb.n, cb.m);
+			    gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
+			    if (myrank == 0){                
+                    plotter->updatePlot(finE_print, niter, cb.m+2, cb.n+2);
+                }	
+		    }
+        }
+
+        if(cb.debug) {
+            printf("[myrank]: %d", myrank);
+            printMatFull("Partial E", E, m + 2, n + 2);
+
+            //if (myrank == 0)
+            //printmat("Gathered E", )
         }
 
         // Swap current and previous meshes
@@ -819,28 +760,9 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
 
     } // end of 'niter' loop at the beginning
 
-    //  printMat("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
-
     stats(E_prev, m, n, &Linf, &sumSq);
     L2 = L2Norm(sumSq);
 
-	// if (cb.debug) printf("Processor ID: %d, sumSq: %lf, Linf: %lf", myrank, sumSq, Linf);
-
-//TODO: l2norm and linf reduce -> send to processor 0
-
-	//Method1: put elements in single array, single reduce operation
-	//double *tempStats = alloc1D(1, 2);
-	//tempStats[0] = L2;
-	//tempStats[1] = Linf;
-
-	//double *finStats = alloc1D(1, 2);
-
-	//MPI_Reduce(tempStats, finStats, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-	//Method2: double reduce operation
-    if (cb.debug) {
-        cout << "[rank " << myrank << "] tcommunicate = " << tcommunicate<< ", tcompute = " << tcompute << ", ttotal (outer) = " << ttotal << ", tscatter = " << tscatter << ", tpad = " << tpad << ", tinnercompute = " << tinnercompute << endl;
-    }
 	double *finStats = alloc1D(1, 2);
 
 	MPI_Reduce(&sumSq, finStats, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -853,22 +775,6 @@ void solveMPI(double **_E, double **_E_prev, double *_R, double alpha, double dt
     *_E = E;
     *_E_prev = E_prev;
 
-//	 gatherFinalValues(
- //   double *E, double *R, const int nprocs, const int myrank, const int m, const int n,
- //   double *recvE, double *recvR)
-
-	double *finE_print = alloc1D(cb.n, cb.m);
-	double *finR_print = alloc1D(cb.n, cb.m);
-
-	gatherFinalValues(E, R, nprocs, myrank, m, n, finE_print, finR_print);
-
-	if (cb.debug){
-		if (myrank == 0){	
-			printMat("Final matrix", finE_print, cb.n, cb.m);
-		}
-	}
-    // free(recvE);
-    // free(recvR);
 }
 
 void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
@@ -897,7 +803,7 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
             double l2norm = L2Norm(sumSq);
             repNorms(l2norm, mx, dt, m, n, -1, cb.stats_freq);
             if (cb.plot_freq)
-                plotter->updatePlot(E, -1, m + 1, n + 1);
+                plotter->updatePlot(E, -1, m, n);
         }
 
         /*
@@ -1001,7 +907,7 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
         {
             if (!(niter % cb.plot_freq))
             {
-                plotter->updatePlot(E, niter, m, n);
+		plotter->updatePlot(E, niter, m, n);
             }
         }
 
@@ -1022,13 +928,12 @@ void solveOriginal(double **_E, double **_E_prev, double *R, double alpha, doubl
     *_E = E;
     *_E_prev = E_prev;
 	
-	
-	printMat("Final matrix", E, cb.m, cb.n);
+	if(cb.debug) printMat("Final matrix", E, cb.m, cb.n);
 }
 
 void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Plotter *plotter, double &L2, double &Linf)
 {
-    //solveMPI(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
-    solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    solveMPI(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
+    //solveOriginal(_E, _E_prev, R, alpha, dt, plotter, L2, Linf);
 }
 
