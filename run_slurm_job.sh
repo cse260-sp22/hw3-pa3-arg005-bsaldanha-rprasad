@@ -150,9 +150,9 @@ if [ "$expanse" -eq "0" ]; then
     new_command="mpirun -n $nprocs $binaryfile -n $n -i $i -x $px -y $py"
 fi
 
-# if [ "$profile" -eq "1" ]; then
-#     new_command="srun --mpi=pmi2 -n $nprocs tau_exec -io .\/apf -n $n -i $i -x $px -y $py"
-# fi
+if [ "$profile" -eq "1" ]; then
+    new_command="perf stat -B -e cache-references,cache-misses,cycles,instructions,branches,faults,migrations $new_command"
+fi
 
 if [ "$k" -eq "1" ]; then
     new_command="$new_command -k"
@@ -173,14 +173,16 @@ sed -i -e "s/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=$n_tasks_pe
 
 if [ "$expanse" -eq "0" ]; then
 	sed -i -e "s/^mpirun.*$/$new_command/g" $target_slurm_file
+	sed -i -e "s/^perf stat.*$/$new_command/g" $target_slurm_file
 else
 	sed -i -e "s/^srun.*$/$new_command/g" $target_slurm_file
+	sed -i -e "s/^perf stat.*$/$new_command/g" $target_slurm_file
 fi
 
-if [ "$profile" -eq "0" ]; then
-    sed -i -e "s/.*load tau.*//g" $target_slurm_file
-else
-    echo -n "module load tau" >> $target_slurm_file
-fi
+# if [ "$profile" -eq "0" ]; then
+#    sed -i -e "s/.*load tau.*//g" $target_slurm_file
+# else
+#    echo -n "module load tau" >> $target_slurm_file
+# fi
 
 sbatch $target_slurm_file

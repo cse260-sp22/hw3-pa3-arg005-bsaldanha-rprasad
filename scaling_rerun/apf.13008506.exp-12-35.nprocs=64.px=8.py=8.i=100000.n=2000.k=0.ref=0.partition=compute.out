@@ -1,0 +1,35 @@
+
+[Simulation begins] Thu Jun  2 17:59:59 2022
+
+dt= 0.00117339, # iters = 100000
+m x n = 2000 x 2000
+processor geometry: 8 x 8
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Thu Jun  2 18:00:06 2022
+
+End at iteration 99999
+Max norm: 9.85552e-01, L2norm: 6.13571e-01
+Running Time: 7.12169 sec. [1.57e+03 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 2000 2000    8 8      Y     100000  7.122 1573    9.85552e-01 6.13571e-01
+  -----
+
+ Performance counter stats for 'srun --mpi=pmi2 -n 64 ./apf -n 2000 -i 100000 -x 8 -y 8':
+
+           3016618      cache-references                                            
+            812477      cache-misses              #   26.933 % of all cache refs    
+          56658467      cycles                                                      
+          64895336      instructions              #    1.15  insn per cycle         
+          13539860      branches                                                    
+              1563      faults                                                      
+                16      migrations                                                  
+
+       9.006032463 seconds time elapsed
+
+       0.006979000 seconds user
+       0.010374000 seconds sys
+
+
