@@ -629,7 +629,7 @@ inline void gatherFinalValues(
 	if (cb.debug){ 
 		sleep(myrank);
 		printf("[my rank]: %d\n", myrank);	
-		printMatFull("Intermediate matrices", r_tempE, m, n);
+		printMatFull("Intermediate matrices", sendE, m, n);
 		printf("\n\n");
 	}
 
