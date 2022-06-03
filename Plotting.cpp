@@ -13,11 +13,11 @@ void Plotter::updatePlot(double *U,  int niter, int m, int n){
     double mx= -1.0e10, mn = 1.0e10;
 
     for (int i=0; i<(m+2)*(n+2); i++){
-       if (U[i] > mx)
-           mx = U[i];
-       if (U[i] < mn)
-           mn = U[i];
-       }
+        if (U[i] > mx)
+            mx = U[i];
+        if (U[i] < mn)
+            mn = U[i];
+    }
 //    fprintf(gnu_pipe, "\n\nunset key\n");
     fprintf(gnu_pipe, "set title \"niter = %d\n",niter);
     fprintf(gnu_pipe, "set xrange [0:%f]\n", m);
@@ -34,29 +34,33 @@ void Plotter::updatePlot(double *U,  int niter, int m, int n){
 
     // Write out the coordinates of the particles
     fprintf(gnu_pipe,"splot [0:%d] [0:%d][%f:%f] \"-\"\n",m-2,n-2,mn,mx);
-for (int i=0; i<(m+2)*(n+2); i++) {
-            int I = i / (n+2);
-            int J = i % (n+2);
-            fprintf(gnu_pipe,"%d %d %f\n", I, J, U[i]);
-            if (J == n+1)
-                fprintf(gnu_pipe,"\n");
+    for (int i=0; i<(m+2)*(n+2); i++) {
+        int I = i / (n+2);
+        int J = i % (n+2);
+        fprintf(gnu_pipe,"%d %d %f\n", I, J, U[i]);
+        if (J == n+1)
+            fprintf(gnu_pipe,"\n");
     }
     fprintf(gnu_pipe, "e\n");
 
-                fprintf(gnu_pipe,"\n");
-                fprintf(gnu_pipe,"\n");
-                fprintf(gnu_pipe,"\n");
-fprintf(gnu_pipe, "set term postscript\n");
-fprintf(gnu_pipe, "set output \"print_%d.ps\"\n", niter);
-fprintf(gnu_pipe, "replot\n");
+    fprintf(gnu_pipe,"\n");
+    fprintf(gnu_pipe,"\n");
+    fprintf(gnu_pipe,"\n");
+    //fprintf(gnu_pipe, "set term postscript\n");
+    //fprintf(gnu_pipe, "set output \"print_%d.ps\"\n", niter);
+    //fprintf(gnu_pipe, "replot\n");
+    fprintf(gnu_pipe, "set term png\n");
+    fprintf(gnu_pipe, "set output \"print_%d.png\"\n", niter);
+    fprintf(gnu_pipe, "replot\n");
+    fprintf(gnu_pipe, "set term x11\n");
 
     fflush(gnu_pipe);
 
-  if (cb.wait){
-      cout << "Type any key to continue...\n";
-      int dummy;
-      cin >> dummy;
-  }
+    if (cb.wait){
+        cout << "Type any key to continue...\n";
+        int dummy;
+        cin >> dummy;
+    }
 }
 
 Plotter::~Plotter() {
