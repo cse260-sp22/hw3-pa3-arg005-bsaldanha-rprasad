@@ -43,15 +43,6 @@ void Plotter::updatePlot(double *U,  int niter, int m, int n){
     }
     fprintf(gnu_pipe, "e\n");
 
-<<<<<<< HEAD
-                fprintf(gnu_pipe,"\n");
-                fprintf(gnu_pipe,"\n");
-                fprintf(gnu_pipe,"\n");
-fprintf(gnu_pipe, "set term png\n");
-fprintf(gnu_pipe, "set output \"plots\/print_%d.png\"\n", niter);
-fprintf(gnu_pipe, "replot\n");
-fprintf(gnu_pipe, "set term x11\n");
-=======
     fprintf(gnu_pipe,"\n");
     fprintf(gnu_pipe,"\n");
     fprintf(gnu_pipe,"\n");
@@ -62,7 +53,6 @@ fprintf(gnu_pipe, "set term x11\n");
     fprintf(gnu_pipe, "set output \"print_%d.png\"\n", niter);
     fprintf(gnu_pipe, "replot\n");
     fprintf(gnu_pipe, "set term x11\n");
->>>>>>> 8fd919490763470aa38f644fd21b8eb926448a96
 
     fflush(gnu_pipe);
 
