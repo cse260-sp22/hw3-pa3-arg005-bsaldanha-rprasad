@@ -13,33 +13,41 @@ If you worked alone leave column B blank
 
 (1) List the names of your team members:
 
-A:
+A: Arpit Gupta
 
- 
-B:
+B: Brandon Saldanha
 
- 
+C: Raghav Prasad
  
 (2) Estimate how much time each team member devoted to this project, in HOURS.
 
-  	                        A 	       B
-meetings 	  	  	 
-coding 	  	  	 
-writeup 	  	  	 
-planning (alone) 	  	  	 
-total (including meetings) 	  	  	 
+  	                        A       B       C
+meetings                    15      15      15
+coding 	  	  	            20      20      18
+writeup 	  	  	        6       4       6
+planning (alone) 	  	  	5       5       5
+total (including meetings)  46      44      44
 
 
 (3) Discuss the following.
 (a) If you worked in a team, what were the major responsibilities
     of each team member?
+    Arpit -> Worked on code to scatter initial data across processors, added scripts to automate the testing process and added optimizations over the base functionality to get better performance
+    Brandon -> Worked on gathering results from different processors and outputting the final result. Also worked on code for extra credit to plot the results
+    Raghav -> Worked on code for ghost cell communication and differential equation computation in submatrices across processors, parallelizing compute and communication
 (b) Did you complete the assignment?
+    Yes
 (c) What were your major strengths and weaknesses in doing this
     assignment (individually or in a team)?
     If in a team, also discuss how your team worked together.
+    I think we were stronger togetheras a team because our strengths complemented well and we were able to contribute significantly on various aspects of the project.
+    We worked on this by making sure we met in person, blocked out a chunk of time dedicated to working on this project. We modularized our workflow into fairly independent tasks so that we could distribute and complete them in parallel
 (d) What  lessons did you learn from these events.
+    We found that starting early and managing our time well was key to us being able to exhaustively test our code and rectify any shortcomings.
 (e) If in a team, whether and how you plan to change the way
     your work together .
+    I believe we checked a lot of boxes when it comes to an ideal team working environment and we wouldn't really change much about the way we approached this project.
 (f) Anything else that comes to mind.
+    A big thank you to the TAs for being so patient and helping us out when we were stuck even with 3 people working on the same problem!
 
 

@@ -6,7 +6,8 @@ policies in effect for this course, as stated in
 	https://sites.google.com/eng.ucsd.edu/cse260-winter-2019/academic-integrity
 
 Signed,
-        Jane Doe (janedoe@ucsd.edu) [YY/MM/DD]
+        Raghav Prasad (rprasad@ucsd.edu) [22/06/04]
+        John Doe (janedoe@ucsd.edu) [YY/MM/DD]
         John Doe (janedoe@ucsd.edu) [YY/MM/DD]
 ------------------------------------------------
 Instructions:
