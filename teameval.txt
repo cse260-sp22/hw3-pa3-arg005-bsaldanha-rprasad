@@ -40,7 +40,7 @@ total (including meetings)  46      44      44
 (c) What were your major strengths and weaknesses in doing this
     assignment (individually or in a team)?
     If in a team, also discuss how your team worked together.
-    I think we were stronger togetheras a team because our strengths complemented well and we were able to contribute significantly on various aspects of the project.
+    I think we were stronger together as a team because our strengths complemented well and we were able to contribute significantly on various aspects of the project.
     We worked on this by making sure we met in person, blocked out a chunk of time dedicated to working on this project. We modularized our workflow into fairly independent tasks so that we could distribute and complete them in parallel
 (d) What  lessons did you learn from these events.
     We found that starting early and managing our time well was key to us being able to exhaustively test our code and rectify any shortcomings.

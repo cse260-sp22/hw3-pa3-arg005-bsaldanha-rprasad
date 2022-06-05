@@ -8,7 +8,7 @@ policies in effect for this course, as stated in
 Signed,
         Raghav Prasad (rprasad@ucsd.edu) [22/06/04]
         Arpit Gupta (arg005@ucsd.edu) [22/06/04]
-        John Doe (janedoe@ucsd.edu) [YY/MM/DD]
+        Brandon Saldanha (bsaldanha@ucsd.edu) [22/06/04]
 ------------------------------------------------
 Instructions:
 Insert your name(s), email address(s), and date signed.
